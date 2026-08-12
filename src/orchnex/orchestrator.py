@@ -5,6 +5,7 @@ from .templates import PromptTemplates
 from .providers.base import LLMProvider
 from .providers.llama_provider import LlamaProvider
 from .providers.gemini_provider import GeminiProvider
+from .providers.ollama_provider import OllamaProvider
 from .output_manager import OutputManager
 
 class MultiLLMOrchestrator:
@@ -18,27 +19,56 @@ class MultiLLMOrchestrator:
     def _initialize_providers(self):
         """Initialize all LLM providers"""
         try:
-            # Initialize Llama provider
-            llama_provider = LlamaProvider()
-            llama_provider.initialize(
-                api_key=self.config.nvidia_api_key,
-                model_name=self.config.llama_model
-            )
-            self.providers['llama'] = llama_provider
+            if self.config.use_ollama:
+                # Use local fallbacks if model names are set to cloud defaults
+                gemini_model = self.config.gemini_model
+                if gemini_model == "gemini-1.5-pro-exp-0827":
+                    gemini_model = "llama3"
+                
+                llama_model = self.config.llama_model
+                if llama_model == "meta/llama-3.1-8b-instruct":
+                    llama_model = "llama3"
 
-            # Initialize Gemini provider
-            gemini_provider = GeminiProvider()
-            gemini_provider.initialize(
-                api_key=self.config.gemini_api_key,
-                model_name=self.config.gemini_model,
-                generation_config={
-                    "temperature": self.config.temperature,
-                    "top_p": self.config.top_p,
-                    "max_output_tokens": self.config.max_tokens
-                },
-                system_instruction=self.templates.get_phoenix_instructions()
-            )
-            self.providers['gemini'] = gemini_provider
+                # Initialize local Llama/QC provider
+                llama_provider = OllamaProvider()
+                llama_provider.initialize(
+                    api_key=None,
+                    base_url=self.config.ollama_base_url,
+                    model_name=llama_model
+                )
+                self.providers['llama'] = llama_provider
+
+                # Initialize local Gemini/Phoenix provider
+                gemini_provider = OllamaProvider()
+                gemini_provider.initialize(
+                    api_key=None,
+                    base_url=self.config.ollama_base_url,
+                    model_name=gemini_model,
+                    system_instruction=self.templates.get_phoenix_instructions()
+                )
+                self.providers['gemini'] = gemini_provider
+            else:
+                # Initialize Llama provider
+                llama_provider = LlamaProvider()
+                llama_provider.initialize(
+                    api_key=self.config.nvidia_api_key,
+                    model_name=self.config.llama_model
+                )
+                self.providers['llama'] = llama_provider
+
+                # Initialize Gemini provider
+                gemini_provider = GeminiProvider()
+                gemini_provider.initialize(
+                    api_key=self.config.gemini_api_key,
+                    model_name=self.config.gemini_model,
+                    generation_config={
+                        "temperature": self.config.temperature,
+                        "top_p": self.config.top_p,
+                        "max_output_tokens": self.config.max_tokens
+                    },
+                    system_instruction=self.templates.get_phoenix_instructions()
+                )
+                self.providers['gemini'] = gemini_provider
             
         except Exception as e:
             raise RuntimeError(f"Error initializing providers: {str(e)}")

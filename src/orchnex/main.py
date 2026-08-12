@@ -1,5 +1,6 @@
+# src/orchnex/main.py
 from rich.console import Console
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -12,7 +13,6 @@ class OrchnexDemo:
     def __init__(self):
         self.console = Console()
         self.orchestrator = None
-        self.initialize_system()
     
     def display_header(self):
         header = """
@@ -53,25 +53,61 @@ class OrchnexDemo:
         self.console.print(capabilities_table)
 
     def initialize_system(self):
-        # Get API keys
-        gemini_key = os.getenv("GEMINI_API_KEY")
-        nvidia_key = os.getenv("NVIDIA_API_KEY")
+        # Check if they want to run on Ollama
+        use_ollama = os.getenv("USE_OLLAMA", "").lower() in ("true", "1")
+        if os.getenv("USE_OLLAMA") is None:
+            use_ollama = Confirm.ask("Do you want to run locally with Ollama?")
 
-        if not gemini_key:
-            gemini_key = Prompt.ask("Enter GEMINI_API_KEY")
-        if not nvidia_key:
-            nvidia_key = Prompt.ask("Enter NVIDIA_API_KEY")
+        gemini_key = None
+        nvidia_key = None
+        gemini_model = "gemini-1.5-pro-exp-0827"
+        llama_model = "meta/llama-3.1-8b-instruct"
+        ollama_url = "http://localhost:11434/v1"
 
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
+        if use_ollama:
+            gemini_model = Prompt.ask("Enter local model to use for Generation (Phoenix)", default="llama3")
+            llama_model = Prompt.ask("Enter local model to use for Feedback (PromptMaster)", default="llama3")
+            ollama_url = Prompt.ask("Enter Ollama API Base URL", default="http://localhost:11434/v1")
+        else:
+            # Get API keys
+            gemini_key = os.getenv("GEMINI_API_KEY")
+            nvidia_key = os.getenv("NVIDIA_API_KEY")
+
+            if not gemini_key or gemini_key.startswith("your_"):
+                gemini_key = Prompt.ask("Enter GEMINI_API_KEY")
+            if not nvidia_key or nvidia_key.startswith("your_"):
+                nvidia_key = Prompt.ask("Enter NVIDIA_API_KEY")
+
+        self.initialize_system_args(
+            use_ollama=use_ollama,
+            gemini_model=gemini_model,
+            llama_model=llama_model,
+            ollama_url=ollama_url,
+            gemini_key=gemini_key,
+            nvidia_key=nvidia_key
+        )
+
+    def initialize_system_args(self, use_ollama: bool, gemini_model: str, llama_model: str, ollama_url: str, gemini_key: str = None, nvidia_key: str = None):
+        if not use_ollama:
+            gemini_key = gemini_key or os.getenv("GEMINI_API_KEY")
+            nvidia_key = nvidia_key or os.getenv("NVIDIA_API_KEY")
+            if not gemini_key or not nvidia_key:
+                raise ValueError("Both GEMINI_API_KEY and NVIDIA_API_KEY must be provided or set in environment variables when not using Ollama.")
+
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
             transient=True,
-            ) as progress:
-                task = progress.add_task("🚀 Initializing Orchnex system...", total=None)
+        ) as progress:
+            task = progress.add_task("🚀 Initializing Orchnex system...", total=None)
             
             config = LLMConfig(
                 gemini_api_key=gemini_key,
-                nvidia_api_key=nvidia_key
+                nvidia_api_key=nvidia_key,
+                gemini_model=gemini_model,
+                llama_model=llama_model,
+                use_ollama=use_ollama,
+                ollama_base_url=ollama_url
             )
             
             self.orchestrator = MultiLLMOrchestrator(config)
@@ -104,7 +140,7 @@ class OrchnexDemo:
 
             # Step 2: Initial Generation with Gemini
             with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
-                task = progress.add_task("🤖 Step 2: Generating initial response with Gemini...", total=1)
+                task = progress.add_task("🤖 Step 2: Generating initial response...", total=1)
                 initial_result = self.orchestrator.providers['gemini'].generate_response(enhanced_prompt)
                 progress.update(task, completed=1)
 
@@ -140,7 +176,7 @@ class OrchnexDemo:
 
                 # Gemini Refinement
                 with Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}")) as progress:
-                    task = progress.add_task(f"✨ Step {4+iteration*2}: Refining with Gemini...", total=1)
+                    task = progress.add_task(f"✨ Step {4+iteration*2}: Refining output...", total=1)
                     current_result = self.orchestrator.providers['gemini'].generate_response(
                         f"Refine based on feedback:\n{feedback}\n\nPrevious response:\n{current_result}"
                     )
@@ -165,16 +201,14 @@ class OrchnexDemo:
 
             # Display final results panel
             final_panel = Panel(
-                f"""
-    🎯 Original Prompt:
-    {prompt}
+                f"""🎯 Original Prompt:
+{prompt}
 
-    📝 Enhanced Prompt:
-    {enhanced_prompt}
+📝 Enhanced Prompt:
+{enhanced_prompt}
 
-    📊 Final Result:
-    {current_result}
-                """,
+📊 Final Result:
+{current_result}""",
                 title="🌟 Final Processing Results",
                 style="green"
             )
@@ -192,11 +226,12 @@ class OrchnexDemo:
             self.console.print(error_panel)
             
             # Save error to output manager
-            self.orchestrator.output_manager.save_output(
-                "error.md",
-                str(e),
-                "Error"
-            )
+            if self.orchestrator:
+                self.orchestrator.output_manager.save_output(
+                    "error.md",
+                    str(e),
+                    "Error"
+                )
             return None
     
     def run(self):
@@ -204,6 +239,7 @@ class OrchnexDemo:
             # Setup
             self.display_header()
             self.display_capabilities()
+            self.initialize_system()
 
             # Main interaction loop
             while True:
@@ -232,5 +268,28 @@ def run_interactive_demo():
     demo = OrchnexDemo()
     demo.run()
 
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Orchnex: Multi-LLM Orchestration Platform")
+    parser.add_argument("--prompt", "-p", type=str, help="Prompt to process directly (non-interactive mode)")
+    parser.add_argument("--ollama", "-o", action="store_true", help="Run locally using Ollama")
+    parser.add_argument("--model-gen", type=str, default="llama3", help="Local generation model (default: llama3)")
+    parser.add_argument("--model-eval", type=str, default="llama3", help="Local evaluation model (default: llama3)")
+    parser.add_argument("--ollama-url", type=str, default="http://localhost:11434/v1", help="Ollama API URL")
+    
+    args = parser.parse_args()
+    
+    if args.prompt:
+        demo = OrchnexDemo()
+        demo.initialize_system_args(
+            use_ollama=args.ollama,
+            gemini_model=args.model_gen,
+            llama_model=args.model_eval,
+            ollama_url=args.ollama_url
+        )
+        demo.process_prompt(args.prompt)
+    else:
+        run_interactive_demo()
+
 if __name__ == "__main__":
-    run_interactive_demo()
+    main()

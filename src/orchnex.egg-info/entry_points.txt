@@ -1,0 +1,3 @@
+[console_scripts]
+orchnex = orchnex.main:main
+orchnex-rag = orchnex.rag_main:main

@@ -2,5 +2,6 @@
 # from .base import LLMProvider
 from .llama_provider import LlamaProvider
 from .gemini_provider import GeminiProvider
+from .ollama_provider import OllamaProvider
 
-__all__ = ['LLMProvider', 'LlamaProvider', 'GeminiProvider']
+__all__ = ['LLMProvider', 'LlamaProvider', 'GeminiProvider', 'OllamaProvider']

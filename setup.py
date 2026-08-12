@@ -13,7 +13,7 @@ def read_requirements(filename):
         return [line.strip() for line in f if line.strip() and not line.startswith('#')]
 
 # Read requirements
-INSTALL_REQUIRES = read_requirements('requirements.txt')
+INSTALL_REQUIRES = read_requirements('requirements.text')
 
 class CustomInstallCommand(install):
     """Custom installation command"""
@@ -104,7 +104,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'orchnex=orchnex.main:run_interactive_demo',
+            'orchnex=orchnex.main:main',
+            'orchnex-rag=orchnex.rag_main:main',
         ],
     },
     cmdclass={
