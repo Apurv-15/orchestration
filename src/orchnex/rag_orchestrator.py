@@ -12,6 +12,7 @@ from .providers.ollama_provider import OllamaProvider
 from .output_manager import OutputManager
 from .retriever import DocumentRetriever, DocumentChunk
 from .rag_templates import RAGTemplates
+from .hallucination_detector import HallucinationDetector
 
 class RAGOrchestrator:
     def __init__(self, config: LLMConfig, embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"):
@@ -73,9 +74,16 @@ class RAGOrchestrator:
                     }
                 )
                 self.providers['gemini'] = gemini_provider
-            
+
         except Exception as e:
             raise RuntimeError(f"Error initializing providers: {str(e)}")
+
+        self.hallucination_detector = None
+        if self.config.use_ollama:
+            self.hallucination_detector = HallucinationDetector(
+                ollama_url=self.config.ollama_base_url,
+                model_name=llama_model
+            )
 
     def load_documents(self, directory_path: str, chunk_size: int = 500, overlap: int = 100) -> int:
         """Incorporate document loading into retriever"""
@@ -170,6 +178,8 @@ class RAGOrchestrator:
                         "critique": f"Raw output parser fallback. Raw: {eval_raw}"
                     }
 
+                # Store the answer text that was evaluated in this iteration
+                eval_data["answer"] = current_answer
                 evaluation_history.append(eval_data)
                 
                 # Save evaluation step
@@ -213,6 +223,18 @@ class RAGOrchestrator:
                 
                 current_answer = refined_answer
 
+            # Additional signal: per-claim NLI hallucination check (independent of the QC loop above)
+            hallucination_check = None
+            if self.hallucination_detector:
+                hallucination_check = self.hallucination_detector.detect_hallucinations(
+                    formatted_contexts, current_answer
+                )
+                self.output_manager.save_output(
+                    "hallucination_check.md",
+                    json.dumps(hallucination_check, indent=2),
+                    "Hallucination Detection (Per-Claim NLI)"
+                )
+
             # Save final summary JSON
             summary_data = {
                 "timestamp": datetime.now().isoformat(),
@@ -221,7 +243,8 @@ class RAGOrchestrator:
                 "final_answer": current_answer,
                 "qc_passed": passed_checks,
                 "iterations": iterations_run,
-                "evaluation_history": evaluation_history
+                "evaluation_history": evaluation_history,
+                "hallucination_check": hallucination_check
             }
             self.output_manager.save_summary(summary_data)
 
