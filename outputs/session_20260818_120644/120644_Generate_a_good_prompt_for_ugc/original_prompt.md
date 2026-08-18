@@ -1,0 +1,1 @@
+Generate a good prompt for ugc ad video for ad
