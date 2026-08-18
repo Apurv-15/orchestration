@@ -90,6 +90,16 @@ export default function Home() {
     };
   }, [loading]);
 
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleStop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!prompt.trim() || loading) return;
@@ -98,12 +108,16 @@ export default function Home() {
     setError(null);
     setResponse(null);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
       const res = await fetch('http://localhost:8000/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
         body: JSON.stringify({
           prompt: prompt,
           use_ollama: true,
@@ -120,11 +134,16 @@ export default function Home() {
       const data = await res.json();
       setResponse(data);
     } catch (err: any) {
-      setError(
-        err.message || 'Connecting server failed. Ensure FastAPI server is running on http://localhost:8000'
-      );
+      if (err.name === 'AbortError') {
+        setError('Generation stopped by user.');
+      } else {
+        setError(
+          err.message || 'Connecting server failed. Ensure FastAPI server is running on http://localhost:8000'
+        );
+      }
     } finally {
       setLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -382,27 +401,30 @@ export default function Home() {
               className="w-full bg-transparent px-6 py-3 text-lg text-white placeholder-white/40 focus:outline-none disabled:opacity-50 font-medium"
             />
 
-            <button
-              type="submit"
-              disabled={loading || !prompt.trim()}
-              className={`p-4 rounded-full transition-all duration-300 flex items-center justify-center mr-2 ${
-                loading || !prompt.trim()
-                  ? 'text-white/30 cursor-not-allowed'
-                  : 'text-white hover:bg-white/10'
-              }`}
-            >
-              {loading ? (
-                <div className="flex gap-1 items-center justify-center h-6 w-6">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                  <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span>
-                </div>
-              ) : (
+            {loading ? (
+              <button
+                type="button"
+                onClick={handleStop}
+                className="p-3.5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 transition-all duration-300 flex items-center justify-center mr-2 group shrink-0"
+                title="Stop generation"
+              >
+                <div className="w-4 h-4 bg-red-400 rounded-sm group-hover:scale-95 transition-transform" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!prompt.trim()}
+                className={`p-4 rounded-full transition-all duration-300 flex items-center justify-center mr-2 ${
+                  !prompt.trim()
+                    ? 'text-white/30 cursor-not-allowed'
+                    : 'text-white hover:bg-white/10'
+                }`}
+              >
                 <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 2v20M17 7v10M7 7v10M22 10v4M2 10v4" />
                 </svg>
-              )}
-            </button>
+              </button>
+            )}
           </div>
         </form>
       </footer>
