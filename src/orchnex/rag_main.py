@@ -166,16 +166,18 @@ class RAGDemo:
                 faith = eval_data.get("faithfulness", "NO")
                 relevance = eval_data.get("relevance", "NO")
                 critique = eval_data.get("critique", "No critique provided.")
+                ans = eval_data.get("answer", "")
                 
                 faith_style = "green" if faith == "YES" else "red"
                 rel_style = "green" if relevance == "YES" else "red"
                 
                 self.console.print(f"  [bold]Iteration {idx+1}:[/bold]")
+                self.console.print(f"    • Candidate Answer Evaluated:")
+                self.console.print(Panel(ans, title=f"Candidate Answer {idx+1}", border_style="blue", expand=False))
                 self.console.print(f"    • Faithfulness (No Hallucination): [{faith_style}]{faith}[/{faith_style}]")
                 self.console.print(f"    • Query Relevance:               [{rel_style}]{relevance}[/{rel_style}]")
-                self.console.print(f"    • Feedback:                       [italic white]{critique}[/italic white]")
-            
-            self.console.print()
+                self.console.print(f"    • Critique/Feedback:              [italic white]{critique}[/italic white]")
+                self.console.print("-" * 50)
 
             # Display Final Answer Panel
             qc_status = "✅ QC PASSED" if summary["qc_passed"] else "⚠️ QC FAILED (Max iterations reached)"
@@ -188,6 +190,15 @@ class RAGDemo:
                 border_style="green" if summary["qc_passed"] else "yellow"
             )
             self.console.print(final_panel)
+
+            # If there was a refinement (more than 1 iteration), display the before/after comparison
+            if len(summary["evaluation_history"]) > 1:
+                self.console.print("\n[bold orange3]🔄 Hallucination Correction Comparison:[/bold orange3]")
+                initial_ans = summary["evaluation_history"][0].get("answer", "")
+                final_ans = summary["final_answer"]
+                
+                self.console.print(Panel(initial_ans, title="❌ Previous Output (Before Correction / Hallucinated)", border_style="red", expand=False))
+                self.console.print(Panel(final_ans, title="✅ Current Output (After Correction / Grounded)", border_style="green", expand=False))
 
         except Exception as e:
             self.console.print(Panel(f"❌ Error during RAG execution: {str(e)}", title="Error", style="bold red"))
