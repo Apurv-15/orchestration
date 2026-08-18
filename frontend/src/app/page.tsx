@@ -7,12 +7,12 @@ import ReactMarkdown from 'react-markdown';
 // Dynamically import WebGL Plasma component to ensure it renders purely client-side
 const Plasma = dynamic(() => import('./components/Plasma'), { ssr: false });
 
-const ORCHESTRATION_STEPS = [
-  'Analyzing intent...',
-  'Structuring context...',
-  'Invoking generation engine...',
-  'Performing quality check...',
-  'Synthesizing response...'
+const ORCHESTRATION_PHASES = [
+  { title: 'Architecting specification...', sub: 'Deconstructing intent & mapping constraints' },
+  { title: 'Grounding context & patterns...', sub: 'Scanning workspace & framework patterns' },
+  { title: 'Cooking up optimal prompt...', sub: 'Executing PromptMaster 4.0 reasoning engine' },
+  { title: 'Running dual generation...', sub: 'Synthesizing 10x-quality deliverable' },
+  { title: 'Validating & verifying claims...', sub: 'Evaluating quality gates & NLI facts' }
 ];
 
 export default function Home() {
@@ -42,8 +42,8 @@ export default function Home() {
     if (loading) {
       setCurrentStepIndex(0);
       stepIntervalRef.current = setInterval(() => {
-        setCurrentStepIndex((prev) => (prev + 1) % ORCHESTRATION_STEPS.length);
-      }, 2500);
+        setCurrentStepIndex((prev) => (prev + 1) % ORCHESTRATION_PHASES.length);
+      }, 2400);
     } else {
       if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
     }
@@ -202,46 +202,48 @@ export default function Home() {
           />
         </div>
 
-        {/* Dynamic Title & Real-time Progress Bar */}
-        <div className="text-center space-y-4 z-10 pointer-events-auto max-w-xl mx-auto w-full px-4">
-          <p className="text-white/70 text-lg sm:text-xl font-medium tracking-wide">
+        {/* Dynamic Title & Real-time Single Pro Progress Bar */}
+        <div className="text-center space-y-4 z-10 pointer-events-auto max-w-lg mx-auto w-full px-4">
+          <p className="text-white/60 text-sm font-medium uppercase tracking-widest">
             Orchnex Intelligence
           </p>
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-white">
-            {loading ? 'Thinking...' : response ? 'Here is what I found.' : 'How can I help you today?'}
+          
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-white transition-all duration-300">
+            {loading ? (
+              <span className="inline-block animate-pulse">
+                {ORCHESTRATION_PHASES[currentStepIndex].title}
+              </span>
+            ) : response ? (
+              'Here is what I found.'
+            ) : (
+              'How can I help you today?'
+            )}
           </h1>
           
           {loading && (
-             <div className="w-full space-y-3 pt-3 animate-fadeIn">
-               {/* Step Title & Percentage */}
-               <div className="flex items-center justify-between text-xs text-white/80 font-medium px-1">
-                 <span className="flex items-center gap-2">
-                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                   {ORCHESTRATION_STEPS[currentStepIndex]}
-                 </span>
-                 <span className="font-mono text-white/60">
-                   {Math.round(((currentStepIndex + 1) / ORCHESTRATION_STEPS.length) * 100)}%
-                 </span>
-               </div>
+             <div className="w-full space-y-3 pt-2 animate-fadeIn">
+               {/* Subtitle / Cooking detail */}
+               <p className="text-xs sm:text-sm text-white/70 font-normal">
+                 {ORCHESTRATION_PHASES[currentStepIndex].sub}
+               </p>
 
-               {/* Sleek Progress Bar Track */}
-               <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden p-0.5 border border-white/10 backdrop-blur-md">
+               {/* Single Sleek Pro Glassmorphic Progress Bar */}
+               <div className="relative w-full bg-white/5 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/15 backdrop-blur-xl shadow-[0_0_20px_rgba(0,0,0,0.8)]">
                  <div 
-                   className="bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_12px_rgba(52,211,153,0.5)]"
-                   style={{ width: `${((currentStepIndex + 1) / ORCHESTRATION_STEPS.length) * 100}%` }}
+                   className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 transition-all duration-700 ease-out shadow-[0_0_16px_rgba(52,211,153,0.6)]"
+                   style={{ width: `${((currentStepIndex + 1) / ORCHESTRATION_PHASES.length) * 100}%` }}
                  />
                </div>
 
-               {/* Step Indicator Nodes */}
-               <div className="flex justify-between items-center px-1 pt-1">
-                 {ORCHESTRATION_STEPS.map((_, idx) => (
-                   <div 
-                     key={idx} 
-                     className={`h-1 rounded-full transition-all duration-500 ${
-                       idx <= currentStepIndex ? 'w-full bg-emerald-400/80 mx-0.5' : 'w-full bg-white/10 mx-0.5'
-                     }`} 
-                   />
-                 ))}
+               {/* Progress Status Footer */}
+               <div className="flex items-center justify-between text-[11px] text-white/50 px-1 font-mono">
+                 <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
+                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                   Phase {currentStepIndex + 1} of {ORCHESTRATION_PHASES.length}
+                 </span>
+                 <span>
+                   {Math.round(((currentStepIndex + 1) / ORCHESTRATION_PHASES.length) * 100)}% Complete
+                 </span>
                </div>
              </div>
           )}
