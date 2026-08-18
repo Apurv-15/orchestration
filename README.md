@@ -6,9 +6,16 @@
 
 ## Overview
 
-Orchnex is a full-stack, dual-LLM orchestration system that combines the capabilities of **Google Gemini** (as *Phoenix* execution engine) and **Meta Llama / Qwen** (as *PromptMaster 4.0* optimizer & *NLI Hallucination Evaluator*).
+**Orchnex** is an end-to-end, dual-LLM orchestration platform and grounded intelligence engine engineered to transform brief, ambiguous user queries into execution-ready specifications, eliminate AI hallucinations, and deliver verifiable, 10x-quality outputs.
 
-The platform features a complete dual-generation engine, automated quality validation, and an evaluation-driven **Retrieval-Augmented Generation (RAG) Pipeline** with side-by-side prompt performance comparison.
+By pairing local lightweight models (**Qwen / Llama 3 via Ollama**) with frontier foundation models (**Google Gemini / Phoenix**), Orchnex implements a closed-loop multi-stage pipeline:
+
+1. **Workspace Context Scanning**: Automatically scans local workspace dependencies (`package.json`, `tsconfig.json`, tech stacks) to ground prompts in real project architectures.
+2. **PromptMaster 4.0 Optimization**: Employs two-phase XML reasoning (`<analysis>` ➔ `<enhanced_prompt>`) that auto-assigns authoritative personas, resolves ambiguities, and outputs strict role/task/constraint specs.
+3. **Automated Quality Validation Gate (`validator.py`)**: Enforces structural validity and prevents unfilled placeholder leaks (`[Platform]`, `TODO`) through an auto-retry correction loop before downstream execution.
+4. **Dual Generation Engine with Side-by-Side Comparison**: Generates both standard raw outputs and PromptMaster-enhanced outputs in parallel with 1-click clipboard actions.
+5. **Evaluation-Driven RAG & NLI Hallucination Detection**: Evaluates factual consistency using local dense embeddings (`all-MiniLM-L6-v2`) and performs per-claim Natural Language Inference (NLI) with strict `SUPPORTED`, `CONTRADICTED`, and `NEUTRAL` verification tags.
+6. **Production-Grade Next.js Interface**: Features real-time percentage progress tracking (0–100%), stage indicators, request abort/stop controls, and an Apple-inspired monochrome aesthetic.
 
 ### Orchnex in Action
 
