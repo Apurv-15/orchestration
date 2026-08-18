@@ -4,6 +4,8 @@ setup.py
 src/orchnex/__init__.py
 src/orchnex/base.py
 src/orchnex/config.py
+src/orchnex/detector_templates.py
+src/orchnex/hallucination_detector.py
 src/orchnex/main.py
 src/orchnex/orchestrator.py
 src/orchnex/output_manager.py
