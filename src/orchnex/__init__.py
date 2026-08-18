@@ -6,8 +6,8 @@ from .providers import GeminiProvider, LlamaProvider
 from .hallucination_detector import HallucinationDetector
 
 __version__ = "0.1.0"
-__author__ = "Harshal More"
-__email__ = "harshalmore2468@gmail.com"
+__author__ = "Apurv"
+__email__ = "apurvd16@gmail.com"
 
 __all__ = [
     "LLMConfig",

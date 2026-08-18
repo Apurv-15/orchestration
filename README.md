@@ -1,160 +1,93 @@
-# Orchnex: Gemini-Llama Orchestration System
+# 🌌 Orchnex — Dual-LLM Orchestration & Grounded Intelligence Engine
 
-<p align="center">
-  <img src="./assets/logo.png" alt="Orchnex Logo" width="400"/>
-</p>
-
-## Overview
-
-Orchnex is a specialized orchestration system that combines the capabilities of Google's Gemini and Meta's Llama models. In addition to Phase 1's dual-agent prompt refinement, the platform now features a complete, evaluation-driven **Retrieval-Augmented Generation (RAG) Pipeline** supporting local semantic search and automated quality verification.
-
-### Orchnex in Action
-
-|System Initialization![s1](./assets/s1.png)|Enhanced Prompt![s2](./assets/s2.png)|
-|--|--|
-|Inital Response![s3](./assets/s3.png)|Meta Feedback-1![s4](./assets/s4.png)|
-|Refined Response-1![s5](./assets/s5.png)|Meta Feedback-2![s6](./assets/s6.png)|
-|Refined Response-2![s7](./assets/s7.png)|Final Result![s8](./assets/s8.png)|
+Orchnex is a full-stack dual-LLM orchestration platform designed to eliminate hallucinations, enforce prompt precision, and provide real-time side-by-side prompt output comparisons.
 
 ---
 
-## Key Features
+## 🏗️ System Architecture & Data Flow
 
-- 🤖 **Dual-LLM Orchestration**: Seamless coordination between Gemini (as *Phoenix* generation engine) and Llama (as *PromptMaster* optimizer).
-- 🔍 **RAG Orchestrator**:
-  - **Local Semantic Search**: Generates dense vector embeddings using `all-MiniLM-L6-v2` via PyTorch and HuggingFace `transformers`.
-  - **Document Indexing**: Automatically parses, splits (overlapping sliding-window), and embeds `.md` and `.txt` documents placed in `data/sample_docs/`.
-  - **Grounded Generation**: Feeds relevant contexts to the generator, enforcing strict adherence to source facts with automated citations.
-- 🔄 **Automated Quality Control Loop**:
-  - Evaluates generated answers using Llama-3.1-8b-Instruct for **Faithfulness** (no hallucinations relative to retrieved context) and **Relevance** (direct answering of user query).
-  - Outputs structured JSON critiques and feeds them back to Gemini for iterative, target-guided refinements until quality thresholds are satisfied.
-- 🦙 **Local Ollama Support**: Run both the standard Multi-LLM Orchestrator and the RAG Evaluator completely offline/locally using models hosted on Ollama.
-- 📈 **Performance Metrics**: Out-of-the-box logs detailing steps, evaluations, and final audit trails.
-
----
-
-## How to Setup
-
-### Requirements 
-- Python >= 3.8
-- PyTorch & HuggingFace Transformers
-- Google AI Python SDK (`google-generativeai`)
-- OpenAI Python SDK (`openai` - utilized for Nvidia NIM API)
-- Ollama (optional, for local development)
-
-### API Key Setup
-To run using cloud APIs, configure your keys in the `.env` file (which is automatically created during setup):
-
-#### 1. Gemini API (for Google Gemini models)
-1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
-2. Login and click **Create API Key**.
-3. Set your key to `GEMINI_API_KEY` in `.env`.
-
-#### 2. Llama API via NVIDIA NIM
-1. Go to [NVIDIA Build](https://build.nvidia.com/meta/llama-3_1-8b-instruct).
-2. Click **Build with this NIM** and generate an API key.
-3. Set your key to `NVIDIA_API_KEY` in `.env`.
-
----
-
-### Installation & Execution
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/harshalmore31/orchnex.git
-   cd orchnex
-   ```
-
-2. **Install requirements & dependencies in editable mode**:
-   ```bash
-   pip install -e .
-   ```
-   *(This downloads all dependencies from `requirements.text` and sets up console commands.)*
-
-3. **Running the Multi-LLM Orchestration platform**:
-   - **Interactive CLI mode**:
-     ```bash
-     orchnex
-     ```
-   - **Local offline mode using Ollama**:
-     ```bash
-     orchnex --ollama --prompt "Explain quantum computing"
-     ```
-
-4. **Running the RAG Evaluator platform**:
-   - Place your reference documents (`.txt` or `.md`) inside `data/sample_docs/`.
-   - **Interactive RAG mode**:
-     ```bash
-     orchnex-rag
-     ```
-   - **Local offline RAG mode using Ollama**:
-     ```bash
-     orchnex-rag --ollama --query "How does Orchnex work?"
-     ```
-
----
-
-## Architecture & Flow
-
-#### Orchnex System Flowchart
-![orchnex_flowchart](./assets/F-orchnex.png)
-
-### RAG Evaluator Flow
 ```mermaid
-graph TD
-    User([User Query]) --> Retriever[Document Retriever]
-    Docs[(data/sample_docs)] --> Retriever
-    Retriever -->|Dense Embeddings| TopK[Top-K Chunks]
-    TopK --> Gen[Generator: Phoenix Gemini]
-    Gen -->|Draft Answer| Eval[Evaluator: QC Agent Llama]
-    Eval -->|Audit Criteria: Faithfulness & Relevance| Dec{Pass QC?}
-    Dec -->|No - Feed Critique| Gen
-    Dec -->|Yes / Max Iterations| Output([Final Grounded Answer])
+flowchart TD
+    subgraph UI ["Modern Next.js Frontend (Port 3000)"]
+        User["User Query Input"] --> Progress["Real-Time Step Progress Bar (0-100%)"]
+        User --> SideBySide["Side-by-Side Comparison UI"]
+    end
+
+    subgraph Backend ["FastAPI Backend Engine (Port 8000)"]
+        User --> API["/api/generate Endpoint"]
+        
+        subgraph Stage1 ["Stage 1: Prompt Enhancement & Validation"]
+            Scanner["ProjectContextScanner"] --> PromptMaster["PromptMaster 4.0 (<analysis> scratchpad)"]
+            API --> Scanner
+            PromptMaster --> Validator["validator.py (Quality Gate Regex & Schema)"]
+            Validator -- "Fail / Retries" --> PromptMaster
+        end
+
+        subgraph Stage2 ["Stage 2: Dual Generation Engine"]
+            API --> BaselineGen["Baseline LLM (Raw Query)"]
+            Validator -- "Pass (enhanced_prompt)" --> PhoenixGen["Phoenix LLM (Enhanced Spec)"]
+        end
+
+        subgraph Stage3 ["Stage 3: Grounding & Hallucination Prevention"]
+            PhoenixGen --> Detector["HallucinationDetector (NLI)"]
+            Detector --> ClaimExtract["1. Extract Atomic Claims"]
+            ClaimExtract --> NLI["2. Batch NLI Verification (SUPPORTED / CONTRADICTED / NEUTRAL)"]
+        end
+    end
+
+    BaselineGen --> SideBySide
+    PhoenixGen --> SideBySide
+    NLI --> SideBySide
 ```
 
 ---
 
-## Quick Start Example
+## ✨ Key Features
 
-Here is how you can initialize the RAG Orchestrator programmatically:
+1. **PromptMaster 4.0 Reasoning Engine**:
+   - Executes a two-phase XML reasoning process: `<analysis>` scratchpad followed by `<enhanced_prompt>` execution spec.
+   - Dynamically assigns authoritative personas (e.g. *"Staff Backend Engineer specializing in distributed systems"*).
 
-```python
-from orchnex import RAGOrchestrator, LLMConfig
+2. **Automated Quality Gating (`validator.py`)**:
+   - Rejects unfilled template placeholders (`[Platform]`, `TODO`), generic personas, or unparsed XML tags with an automated retry loop.
 
-# Configuration
-config = LLMConfig(
-    gemini_api_key="your_gemini_key",
-    nvidia_api_key="your_nvidia_key",
-    use_ollama=False
-)
+3. **Project Context Scanner (`context_scanner.py`)**:
+   - Automatically scans workspace `package.json`, TypeScript configs, and project structure to inject context into the prompt enhancer.
 
-# Initialize Orchestrator
-orchestrator = RAGOrchestrator(config)
+4. **Hallucination Detection & Claim NLI (`hallucination_detector.py`)**:
+   - Deconstructs generated answers into atomic claims and verifies them against retrieved document context using Natural Language Inference (NLI):
+     - `SUPPORTED`: Empirical match with document context.
+     - `CONTRADICTED`: Conflicts with document context.
+     - `NEUTRAL`: Unsubstantiated claim.
 
-# Index your reference documents directory
-orchestrator.load_documents("data/sample_docs")
+5. **Side-by-Side Prompt Comparison**:
+   - Renders raw prompt generation vs. PromptMaster enhanced generation side-by-side with 1-click **Copy Buttons** for comparison.
 
-# Process query with iterative evaluation
-summary = orchestrator.process_query("What is the architecture of Orchnex?")
-print("QC Passed:", summary["qc_passed"])
-print("Final Answer:\n", summary["final_answer"])
+6. **Monochrome Apple Siri Visual Design**:
+   - Dark aesthetic with real-time percentage progress bar, step indicators, and animated WebGL background.
+
+---
+
+## 🚀 Quick Start
+
+### 1. Prerequisites
+- **Python 3.10+**
+- **Node.js 18+**
+- **Ollama** running locally (`ollama serve` with `qwen3:1.7b` or `llama3`)
+
+### 2. Run Application
+Launch both backend FastAPI server and Next.js frontend with a single command:
+```bash
+./start.sh
 ```
 
----
-
-## Future Development
-
-- Support for additional local embedding models.
-- Hybrid search (combining sparse BM25 retrieval with dense embeddings).
-- Support for complex orchestration agents and Custom Tool Calling.
-- Expanded dashboard visualizer for audit history logs.
+- **Frontend UI**: `http://localhost:3000`
+- **Backend API**: `http://localhost:8000`
 
 ---
 
-## Documentation
+## 🛠️ Tech Stack
 
-Visit our [documentation](https://orchnex.readthedocs.io) for:
-- Detailed setup instructions
-- API references
-- Usage examples
-- Performance optimization guides
+- **Frontend**: Next.js 15 (App Router), Tailwind CSS, React Markdown, WebGL OGL.
+- **Backend**: FastAPI, PyDantic, Rich Console Logger.
+- **AI Orchestration**: Llama 3 / Qwen 3 (via Ollama local provider), Gemini / Phoenix API.
