@@ -3,6 +3,7 @@ from .orchestrator import MultiLLMOrchestrator
 from .rag_orchestrator import RAGOrchestrator
 from .retriever import DocumentRetriever
 from .providers import GeminiProvider, LlamaProvider
+from .hallucination_detector import HallucinationDetector
 
 __version__ = "0.1.0"
 __author__ = "Harshal More"
@@ -16,4 +17,5 @@ __all__ = [
     "LLMProvider",
     "GeminiProvider",
     "LlamaProvider",
+    "HallucinationDetector",
 ]
