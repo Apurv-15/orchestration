@@ -62,6 +62,28 @@ graph TD
 
 ---
 
+## 🧠 NLP-Driven Prompt Enhancement Architecture
+
+PromptMaster 4.0 leverages core **Natural Language Processing (NLP)** paradigms to eliminate ambiguity and transform brief prompts into deterministic, machine-executable specifications:
+
+```
+Raw Query ──► [Intent & Slot Extraction] ──► [Semantic Ambiguity Resolution] ──► [Constraint Synthesis] ──► Spec Prompt
+```
+
+### 1. Intent Recognition & Semantic Slot Filling
+- **Core Objective Classification**: Maps surface-level user tokens to underlying functional intents (e.g., distinguishing an informative query from an implementation/code-generation spec).
+- **Slot Discovery**: Analyzes syntactic gaps in the input to identify missing parameters (e.g., target audience, framework versions, latency budgets, data schemas).
+
+### 2. Lexical & Semantic Ambiguity Resolution
+- **Pragmatic Disambiguation**: Resolves polysemous terms and underspecified pronouns before downstream execution rather than punting ambiguity to the generator.
+- **Dynamic Persona Conditioning**: Assigns high-specificity domain embeddings and authoritative roles (e.g., *"Staff Distributed Systems Engineer"* instead of generic *"software engineer"*).
+
+### 3. Structural NLI Grounding & Safety Framing
+- **Failure Mode Extraction**: Proactively predicts 1–3 failure modes (e.g., hallucinated library calls, generic prose) and generates negative constraints (`do not use...`, `strictly format as...`).
+- **Empirical Grounding Injection**: Directs downstream models to rely on retrieved context rather than ungrounded parametric memory.
+
+---
+
 ## ✨ Key Features
 
 - 🤖 **PromptMaster 4.0 Reasoning Engine**:
