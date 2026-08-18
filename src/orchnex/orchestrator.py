@@ -1,5 +1,6 @@
 # src/orchnex/orchestrator.py
 from typing import Dict
+from datetime import datetime
 from .config import LLMConfig
 from .templates import PromptTemplates
 from .providers.base import LLMProvider
@@ -73,25 +74,38 @@ class MultiLLMOrchestrator:
         except Exception as e:
             raise RuntimeError(f"Error initializing providers: {str(e)}")
 
-    def enhance_prompt_with_promptmaster(self, input_prompt: str) -> str:
-        """Use PromptMaster 3.0 to enhance the input prompt"""
+    def enhance_prompt_with_promptmaster(self, input_prompt: str, max_retries: int = 2) -> str:
+        """Use PromptMaster 4.0 with project context scanning and strict validation retries."""
+        from .validator import validate_enhanced_prompt, extract_enhanced_prompt
+        from .context_scanner import ProjectContextScanner
+        
+        scanner = ProjectContextScanner()
+        project_context = scanner.scan()
+        
         template = self.templates.get_promptmaster_template()
-        
-        enhancement_prompt = template.format(
+        base_prompt = template.format(
             input_prompt=input_prompt,
-            core_objective="Identify user's main goal and requirements",
-            context="Add relevant background and scope",
-            clarity="Improve precision and break down complex elements",
-            format="Specify desired output structure",
-            bias="Ensure neutral language",
-            constraints="Define response parameters",
-            optimization="Adapt for Gemini's capabilities"
+            project_context=project_context
         )
+        current_prompt = base_prompt
         
-        return self.providers['llama'].generate_response(
-            enhancement_prompt, 
-            temperature=0.2
-        )
+        for attempt in range(max_retries + 1):
+            raw_output = self.providers['llama'].generate_response(
+                current_prompt, 
+                temperature=0.2
+            )
+            
+            validation = validate_enhanced_prompt(raw_output)
+            # Require validation.passed strictly without bypass
+            if validation.passed:
+                return extract_enhanced_prompt(raw_output)
+            
+            # Append feedback and retry
+            feedback_str = "\n".join(f"- {f}" for f in validation.failures)
+            current_prompt = f"{base_prompt}\n\nYour previous output failed these quality checks, fix and resend:\n{feedback_str}"
+
+        # Fallback to extracted output if retries exhaust
+        return extract_enhanced_prompt(raw_output)
 
 # In your orchestrator's process_input method:
 def process_input(self, prompt: str, verbose: bool = False) -> str:
@@ -108,8 +122,13 @@ def process_input(self, prompt: str, verbose: bool = False) -> str:
             "Enhanced Prompt"
         )
 
-        # 2. Generate initial response
-        initial_result = self.providers['gemini'].generate_response(enhanced_prompt)
+        # 2. Generate initial response (Inject explicit system instruction for Phoenix)
+        phoenix_prompt = (
+            "Execute the following specification precisely to produce the final deliverable. "
+            "Follow all role, context, task instructions, and constraints explicitly:\n\n"
+            f"{enhanced_prompt}"
+        )
+        initial_result = self.providers['gemini'].generate_response(phoenix_prompt)
         self.output_manager.save_output(
             "initial_result.md",
             initial_result,
