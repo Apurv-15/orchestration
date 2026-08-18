@@ -1,0 +1,1 @@
+crete an ugc ad for protein video prompt
