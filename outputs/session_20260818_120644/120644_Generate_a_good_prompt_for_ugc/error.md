@@ -1,0 +1,1 @@
+Error generating response: Error code: 404 - {'error': {'message': "model 'yes' not found", 'type': 'not_found_error', 'param': None, 'code': None}}
