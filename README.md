@@ -37,41 +37,7 @@ Orchnex combines distinct local and cloud AI models tailored for specialized pip
 
 ## 🏗️ System Architecture & Data Flow
 
-```mermaid
-flowchart TD
-    subgraph UI ["Modern Next.js Frontend (Port 3000)"]
-        User["User Query Input"] --> Progress["Real-Time Step Progress Bar (0-100%)"]
-        User --> SideBySide["Side-by-Side Comparison UI"]
-    end
-
-    subgraph Backend ["FastAPI Backend Engine (Port 8000)"]
-        User --> API["/api/generate Endpoint"]
-        
-        subgraph Stage1 ["Stage 1: Context & Prompt Master Enhancement"]
-            Scanner["ProjectContextScanner"] --> PromptMaster["PromptMaster 4.0 (qwen3:1.7b / llama3)"]
-            API --> Scanner
-            PromptMaster --> Validator["validator.py (Regex & Schema Quality Gate)"]
-            Validator -- "Fail / Retries" --> PromptMaster
-        end
-
-        subgraph Stage2 ["Stage 2: Dual Generation Engine"]
-            API --> BaselineGen["Baseline Model (Raw User Query)"]
-            Validator -- "Pass (enhanced_prompt)" --> PhoenixGen["Phoenix Model (Enhanced Spec)"]
-        end
-
-        subgraph Stage3 ["Stage 3: Grounding & Hallucination Prevention"]
-            PhoenixGen --> Detector["HallucinationDetector (NLI)"]
-            Detector --> ClaimExtract["1. Extract Atomic Claims"]
-            ClaimExtract --> NLI["2. Batch NLI Verification (SUPPORTED / CONTRADICTED / NEUTRAL)"]
-        end
-    end
-
-    BaselineGen --> SideBySide
-    PhoenixGen --> SideBySide
-    NLI --> SideBySide
-```
-
-#### Orchnex System Flowchart
+#### System Architecture & Flow
 ![orchnex_flowchart](./assets/F-orchnex.png)
 
 ### RAG Evaluator Flow
