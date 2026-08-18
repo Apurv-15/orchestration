@@ -295,7 +295,7 @@ export default function Home() {
                       {copiedKey === 'raw_result' ? '✓ Copied' : '📋 Copy'}
                     </button>
                   </div>
-                  <div className="text-white/80 text-[14px] leading-relaxed selection:bg-white/20 prose prose-invert max-w-none overflow-x-auto max-h-[600px] overflow-y-auto pr-2 break-words">
+                  <div className="text-white/85 text-[14px] leading-relaxed selection:bg-white/20 markdown-content overflow-x-auto max-h-[600px] overflow-y-auto pr-2 break-words">
                     <ReactMarkdown>{response.raw_result || 'Standard response unavailable'}</ReactMarkdown>
                   </div>
                 </div>
@@ -323,7 +323,7 @@ export default function Home() {
                       </span>
                     </div>
                   </div>
-                  <div className="text-white/95 text-[14px] leading-relaxed selection:bg-white/30 prose prose-invert max-w-none overflow-x-auto max-h-[600px] overflow-y-auto pr-2 break-words">
+                  <div className="text-white/95 text-[14px] leading-relaxed selection:bg-white/30 markdown-content overflow-x-auto max-h-[600px] overflow-y-auto pr-2 break-words">
                     <ReactMarkdown>{response.final_result || response.final_answer}</ReactMarkdown>
                   </div>
                 </div>
