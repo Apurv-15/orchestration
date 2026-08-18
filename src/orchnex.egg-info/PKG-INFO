@@ -1,10 +1,12 @@
-Metadata-Version: 2.4
+Metadata-Version: 2.1
 Name: orchnex
 Version: 0.1.0
 Summary: Multi-LLM Orchestration Platform
 Home-page: https://github.com/yourusername/orchnex
 Author: Harshal More
 Author-email: your.email@example.com
+License: UNKNOWN
+Platform: UNKNOWN
 Classifier: Development Status :: 3 - Alpha
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: MIT License
@@ -14,37 +16,8 @@ Classifier: Programming Language :: Python :: 3.10
 Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
-License-File: LICENSE
-Requires-Dist: openai>=1.0.0
-Requires-Dist: google-generativeai>=0.3.0
-Requires-Dist: transformers>=4.36.0
-Requires-Dist: torch>=2.0.0
-Requires-Dist: rich>=13.7.0
-Requires-Dist: typer>=0.9.0
-Requires-Dist: python-dotenv>=1.0.0
-Requires-Dist: requests>=2.31.0
-Requires-Dist: pydantic>=2.5.0
-Requires-Dist: tenacity>=8.2.0
-Requires-Dist: loguru>=0.7.0
-Requires-Dist: PyYAML>=6.0.1
 Provides-Extra: dev
-Requires-Dist: pytest>=7.4.0; extra == "dev"
-Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
-Requires-Dist: black>=23.11.0; extra == "dev"
-Requires-Dist: isort>=5.12.0; extra == "dev"
-Requires-Dist: mypy>=1.7.0; extra == "dev"
-Requires-Dist: flake8>=6.1.0; extra == "dev"
-Dynamic: author
-Dynamic: author-email
-Dynamic: classifier
-Dynamic: description
-Dynamic: description-content-type
-Dynamic: home-page
-Dynamic: license-file
-Dynamic: provides-extra
-Dynamic: requires-dist
-Dynamic: requires-python
-Dynamic: summary
+License-File: LICENSE
 
 # Orchnex: Gemini-Llama Orchestration System
 
@@ -54,7 +27,7 @@ Dynamic: summary
 
 ## Overview
 
-Orchnex is a specialized orchestration system that combines the capabilities of Google's Gemini and Meta's Llama models. This Phase 1 release focuses on optimizing the interaction between these two powerful LLMs to provide enhanced results through prompt refinement and quality control.
+Orchnex is a specialized orchestration system that combines the capabilities of Google's Gemini and Meta's Llama models. In addition to Phase 1's dual-agent prompt refinement, the platform now features a complete, evaluation-driven **Retrieval-Augmented Generation (RAG) Pipeline** supporting local semantic search and automated quality verification.
 
 ### Orchnex in Action
 
@@ -64,150 +37,146 @@ Orchnex is a specialized orchestration system that combines the capabilities of 
 |Refined Response-1![s5](./assets/s5.png)|Meta Feedback-2![s6](./assets/s6.png)|
 |Refined Response-2![s7](./assets/s7.png)|Final Result![s8](./assets/s8.png)|
 
+---
+
+## Key Features
+
+- 🤖 **Dual-LLM Orchestration**: Seamless coordination between Gemini (as *Phoenix* generation engine) and Llama (as *PromptMaster* optimizer).
+- 🔍 **RAG Orchestrator**:
+  - **Local Semantic Search**: Generates dense vector embeddings using `all-MiniLM-L6-v2` via PyTorch and HuggingFace `transformers`.
+  - **Document Indexing**: Automatically parses, splits (overlapping sliding-window), and embeds `.md` and `.txt` documents placed in `data/sample_docs/`.
+  - **Grounded Generation**: Feeds relevant contexts to the generator, enforcing strict adherence to source facts with automated citations.
+- 🔄 **Automated Quality Control Loop**:
+  - Evaluates generated answers using Llama-3.1-8b-Instruct for **Faithfulness** (no hallucinations relative to retrieved context) and **Relevance** (direct answering of user query).
+  - Outputs structured JSON critiques and feeds them back to Gemini for iterative, target-guided refinements until quality thresholds are satisfied.
+- 🦙 **Local Ollama Support**: Run both the standard Multi-LLM Orchestrator and the RAG Evaluator completely offline/locally using models hosted on Ollama.
+- 📈 **Performance Metrics**: Out-of-the-box logs detailing steps, evaluations, and final audit trails.
+
+---
 
 ## How to Setup
 
 ### Requirements 
-- Google AI Python SDK
+- Python >= 3.8
+- PyTorch & HuggingFace Transformers
+- Google AI Python SDK (`google-generativeai`)
+- OpenAI Python SDK (`openai` - utilized for Nvidia NIM API)
+- Ollama (optional, for local development)
 
-Setup
-```bash
-pip install google-generativeai
+### API Key Setup
+To run using cloud APIs, configure your keys in the `.env` file (which is automatically created during setup):
+
+#### 1. Gemini API (for Google Gemini models)
+1. Go to [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Login and click **Create API Key**.
+3. Set your key to `GEMINI_API_KEY` in `.env`.
+
+#### 2. Llama API via NVIDIA NIM
+1. Go to [NVIDIA Build](https://build.nvidia.com/meta/llama-3_1-8b-instruct).
+2. Click **Build with this NIM** and generate an API key.
+3. Set your key to `NVIDIA_API_KEY` in `.env`.
+
+---
+
+### Installation & Execution
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/harshalmore31/orchnex.git
+   cd orchnex
+   ```
+
+2. **Install requirements & dependencies in editable mode**:
+   ```bash
+   pip install -e .
+   ```
+   *(This downloads all dependencies from `requirements.text` and sets up console commands.)*
+
+3. **Running the Multi-LLM Orchestration platform**:
+   - **Interactive CLI mode**:
+     ```bash
+     orchnex
+     ```
+   - **Local offline mode using Ollama**:
+     ```bash
+     orchnex --ollama --prompt "Explain quantum computing"
+     ```
+
+4. **Running the RAG Evaluator platform**:
+   - Place your reference documents (`.txt` or `.md`) inside `data/sample_docs/`.
+   - **Interactive RAG mode**:
+     ```bash
+     orchnex-rag
+     ```
+   - **Local offline RAG mode using Ollama**:
+     ```bash
+     orchnex-rag --ollama --query "How does Orchnex work?"
+     ```
+
+---
+
+## Architecture & Flow
+
+#### Orchnex System Flowchart
+![orchnex_flowchart](./assets/F-orchnex.png)
+
+### RAG Evaluator Flow
+```mermaid
+graph TD
+    User([User Query]) --> Retriever[Document Retriever]
+    Docs[(data/sample_docs)] --> Retriever
+    Retriever -->|Dense Embeddings| TopK[Top-K Chunks]
+    TopK --> Gen[Generator: Phoenix Gemini]
+    Gen -->|Draft Answer| Eval[Evaluator: QC Agent Llama]
+    Eval -->|Audit Criteria: Faithfulness & Relevance| Dec{Pass QC?}
+    Dec -->|No - Feed Critique| Gen
+    Dec -->|Yes / Max Iterations| Output([Final Grounded Answer])
 ```
 
-- Open AI
+---
 
-Setup
-```bash
-pip install openai
-```
+## Quick Start Example
 
-### Setup API keys { for now we, are limited to GEMINI and LLAMA API (NIM API) }
-
-#### Steps for GEMINI API
-
-1. GEMINI API = https://aistudio.google.com/app/apikey
-2. Login through your google account
-3. Create an API key
-4. Select your project
-5. Your api key will be create, it will look like : AIzaSxxxxxxxxxxh09xxLwCA
-6. Store it safe
-
-#### Steps for LLAMA API using NVIDIA NIM API
-
-1. NIM API = https://build.nvidia.com/explore/discover
-2. Login or create an NVIDIA account to access
-3. Here, you can also explore other various models, but for our project its llama-3_1-8b-instruct
-4. llama-3_1-8b-instruct = https://build.nvidia.com/meta/llama-3_1-8b-instruct
-5. Click Build with this NIM
-6. Generate an API key, it will look like this : nvapi-056fxxxxxxxxxheZxxxxxxxxxxxxxxxxxxxxbg0
-7. Store it safe
-
-### Clone this repo.
-
-1. Choose a directory to clone
-2. Open Terminal, and
-    ```bash
-    cd (your_directory)
-    ```
-3. Clone the repository
-    ```bash
-    git clone https://github.com/harshalmore31/orchnex.git
-    ```
-4. Open in Code Editor, eg. VS Code
-5. Open the requirements.text and download the necessary requirements and dependencies
-6. Install the project in editable mode to set up console commands:
-    ```bash
-    pip install -e .
-    ```
-7. To run the interactive Multi-LLM Orchestration platform:
-    ```bash
-    orchnex
-    ```
-    Or run locally using Ollama:
-    ```bash
-    orchnex --ollama --prompt "Explain quantum computing"
-    ```
-8. To run the RAG Evaluator platform:
-    ```bash
-    orchnex-rag
-    ```
-    Or run locally using Ollama:
-    ```bash
-    orchnex-rag --ollama --query "How does Orchnex work?"
-    ```
-
-#### Orchnex Architecture![orchnex_flowchart](./assets/F-orchnex.png)
-*flowchart of orchnex of gemini and llama*
-
-## Key Features
-
-- 🤖 **Dual-LLM Orchestration**: Seamless coordination between Gemini and Llama
-- 🔄 **PromptMaster Enhancement**: Automatic prompt optimization using Llama
-- ✨ **Phoenix Response Generation**: High-quality responses via Gemini
-- 📊 **Quality Control Loop**: Automated refinement process
-- 📈 **Performance Metrics**: Detailed orchestration insights
-
-## Quick Start
+Here is how you can initialize the RAG Orchestrator programmatically:
 
 ```python
-from orchnex import MultiLLMOrchestrator, LLMConfig
+from orchnex import RAGOrchestrator, LLMConfig
 
-# Initialize with your API keys
+# Configuration
 config = LLMConfig(
     gemini_api_key="your_gemini_key",
-    nvidia_api_key="your_nvidia_key"  # For Llama access
+    nvidia_api_key="your_nvidia_key",
+    use_ollama=False
 )
 
-# Create orchestrator
-orchestrator = MultiLLMOrchestrator(config)
+# Initialize Orchestrator
+orchestrator = RAGOrchestrator(config)
 
-# Process input with visualization
-result = orchestrator.process_input(
-    "Explain quantum computing",
-    verbose=True
-)
-print(result)
+# Index your reference documents directory
+orchestrator.load_documents("data/sample_docs")
+
+# Process query with iterative evaluation
+summary = orchestrator.process_query("What is the architecture of Orchnex?")
+print("QC Passed:", summary["qc_passed"])
+print("Final Answer:\n", summary["final_answer"])
 ```
 
-
-
-
-
-## How It Works
-
-1. **PromptMaster (Llama)**
-   - Analyzes and enhances input prompts
-   - Provides structured enhancement strategies
-
-2. **Phoenix (Gemini)**
-   - Generates high-quality initial responses
-   - Refines based on feedback
-
-3. **Quality Control Loop**
-   - Llama analyzes response quality
-   - Gemini implements refinements
-   - Process continues until quality threshold met
-
-## Current Limitations
-
-- Currently supports only Gemini and Llama models
-- Requires both API keys to function
-- Optimized for specific use cases
+---
 
 ## Future Development
 
-Phase 2 will include:
-- Support for additional LLM providers
-- Flexible provider interface
-- Custom orchestration patterns
-- Advanced configuration options
+- Support for additional local embedding models.
+- Hybrid search (combining sparse BM25 retrieval with dense embeddings).
+- Support for complex orchestration agents and Custom Tool Calling.
+- Expanded dashboard visualizer for audit history logs.
+
+---
 
 ## Documentation
 
 Visit our [documentation](https://orchnex.readthedocs.io) for:
 - Detailed setup instructions
-- API reference
+- API references
 - Usage examples
 - Performance optimization guides
 
