@@ -11,7 +11,7 @@ class LLMConfig:
     llama_model: str = "meta/llama-3.1-8b-instruct"
     use_ollama: bool = False
     ollama_base_url: str = "http://localhost:11434/v1"
-    max_iterations: int = 2
+    max_iterations: int = 1
     temperature: float = 0.7
     top_p: float = 0.95
     max_tokens: int = 1024
