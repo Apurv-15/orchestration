@@ -37,19 +37,34 @@ export default function Home() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // Control live step progression while thinking
+  // Control live step progression & real-time execution stopwatch timer
   useEffect(() => {
     if (loading) {
       setCurrentStepIndex(0);
+      setElapsedSeconds(0);
+      setTotalExecutionTime(null);
+      startTimeRef.current = Date.now();
+
       stepIntervalRef.current = setInterval(() => {
         setCurrentStepIndex((prev) => (prev + 1) % ORCHESTRATION_PHASES.length);
       }, 2400);
+
+      timerIntervalRef.current = setInterval(() => {
+        if (startTimeRef.current) {
+          setElapsedSeconds((Date.now() - startTimeRef.current) / 1000);
+        }
+      }, 100);
     } else {
       if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      if (startTimeRef.current) {
+        setTotalExecutionTime((Date.now() - startTimeRef.current) / 1000);
+      }
     }
 
     return () => {
       if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
   }, [loading]);
 
