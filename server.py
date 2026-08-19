@@ -12,6 +12,20 @@ from pydantic import BaseModel
 from typing import Optional
 from orchnex import MultiLLMOrchestrator, RAGOrchestrator, LLMConfig
 
+def extract_text_from_pdf_bytes(file_bytes: bytes) -> str:
+    """Extract text from PDF file bytes using pypdf."""
+    try:
+        pdf_file = io.BytesIO(file_bytes)
+        reader = PdfReader(pdf_file)
+        extracted_text = []
+        for i, page in enumerate(reader.pages):
+            text = page.extract_text()
+            if text and text.strip():
+                extracted_text.append(f"--- Page {i+1} ---\n" + text.strip())
+        return "\n\n".join(extracted_text).strip()
+    except Exception as e:
+        raise ValueError(f"Failed to extract text from PDF: {str(e)}")
+
 app = FastAPI(title="Orchnex API Server", description="FastAPI backend for Orchnex Orchestrator")
 
 # Enable CORS for Next.js frontend
