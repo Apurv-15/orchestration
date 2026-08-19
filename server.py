@@ -42,6 +42,8 @@ class OrchestrationRequest(BaseModel):
     use_ollama: Optional[bool] = True
     model_name: Optional[str] = "qwen3:1.7b"
     is_rag: Optional[bool] = False
+    document_text: Optional[str] = None
+    document_name: Optional[str] = None
 
 @app.get("/")
 def read_root():
