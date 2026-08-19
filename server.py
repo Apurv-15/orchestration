@@ -45,6 +45,10 @@ class OrchestrationRequest(BaseModel):
     document_text: Optional[str] = None
     document_name: Optional[str] = None
 
+# Module-level RAG orchestrator cache keyed by model_name.
+# Reuses document embeddings across requests for the same model/PDF.
+_rag_orchestrator_cache: dict = {}
+
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Orchnex API Service is running"}
