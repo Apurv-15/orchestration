@@ -37,6 +37,11 @@ export default function Home() {
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [totalExecutionTime, setTotalExecutionTime] = useState<number | null>(null);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number | null>(null);
+
   // Control live step progression & real-time execution stopwatch timer
   useEffect(() => {
     if (loading) {
@@ -109,6 +114,37 @@ export default function Home() {
   const [isUploadingDoc, setIsUploadingDoc] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const handleFileUpload = async (file: File) => {
+    if (!file || !file.name.endsWith('.pdf')) {
+      setError('Please upload a valid .pdf document');
+      return;
+    }
+    setIsUploadingDoc(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('http://localhost:8000/api/upload-pdf', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Failed to upload PDF document');
+      }
+
+      const data = await res.json();
+      setAttachedDoc({ name: data.filename, text: data.extracted_text });
+    } catch (err: any) {
+      setError(err.message || 'Error uploading and parsing PDF file');
+    } finally {
+      setIsUploadingDoc(false);
+    }
+  };
+
+  const [submittedQuery, setSubmittedQuery] = useState('');
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleStop = () => {
@@ -119,10 +155,13 @@ export default function Home() {
     setLoading(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim() || loading) return;
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const query = prompt.trim();
+    if (!query || loading) return;
 
+    setSubmittedQuery(query);
+    setPrompt('');
     setLoading(true);
     setError(null);
     setResponse(null);
@@ -138,7 +177,7 @@ export default function Home() {
         },
         signal: controller.signal,
         body: JSON.stringify({
-          prompt: prompt,
+          prompt: query,
           use_ollama: true,
           model_name: modelName,
           is_rag: isRag,
@@ -240,6 +279,13 @@ export default function Home() {
               'How can I help you today?'
             )}
           </h1>
+
+          {submittedQuery && (
+            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-white/10 border border-white/15 text-xs text-white/80 max-w-md mx-auto backdrop-blur-md">
+              <span className="text-emerald-400 font-semibold">Prompt:</span>
+              <span className="truncate max-w-[280px]">{submittedQuery}</span>
+            </div>
+          )}
           
           {loading && (
              <div className="w-full space-y-3 pt-2 animate-fadeIn">
@@ -262,11 +308,22 @@ export default function Home() {
                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                    Phase {currentStepIndex + 1} of {ORCHESTRATION_PHASES.length}
                  </span>
-                 <span>
-                   {Math.round(((currentStepIndex + 1) / ORCHESTRATION_PHASES.length) * 100)}% Complete
+                 <span className="flex items-center gap-2">
+                   <span className="text-cyan-300 font-bold bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60">
+                     ⏱️ {elapsedSeconds.toFixed(1)}s
+                   </span>
+                   <span>
+                     ({Math.round(((currentStepIndex + 1) / ORCHESTRATION_PHASES.length) * 100)}%)
+                   </span>
                  </span>
                </div>
              </div>
+          )}
+
+          {totalExecutionTime !== null && !loading && response && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-mono text-emerald-300 backdrop-blur-md animate-fadeIn">
+              <span>⚡ Pipeline Completed in <strong>{totalExecutionTime.toFixed(1)}s</strong></span>
+            </div>
           )}
         </div>
 
@@ -280,26 +337,6 @@ export default function Home() {
         {/* Output Presentation Container */}
         {response && (
           <div className="w-full max-w-7xl mt-12 space-y-6 animate-fadeIn transition-all z-10 pointer-events-auto px-4">
-            {/* Enhanced Prompt Stage */}
-            {response.enhanced_prompt && (
-              <div className="bg-zinc-950 backdrop-blur-2xl border border-white/15 rounded-3xl p-6 shadow-2xl overflow-hidden">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-white/80 uppercase tracking-wider">
-                    <span>✨</span> Enhanced Prompt (PromptMaster)
-                  </div>
-                  <button
-                    onClick={() => handleCopy(response.enhanced_prompt, 'enhanced_prompt')}
-                    className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-white/10 hover:bg-white/20 text-white/80 transition"
-                  >
-                    {copiedKey === 'enhanced_prompt' ? '✓ Copied' : '📋 Copy Prompt'}
-                  </button>
-                </div>
-                <div className="text-white/90 text-sm font-mono whitespace-pre-wrap bg-black p-4 rounded-2xl max-h-64 overflow-y-auto overflow-x-hidden border border-white/10 break-words">
-                  {response.enhanced_prompt}
-                </div>
-              </div>
-            )}
-
             {/* Side-by-Side Output Comparison */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start">
               {/* Baseline / Normal Prompt Result */}
@@ -307,7 +344,7 @@ export default function Home() {
                 <div className="overflow-hidden">
                   <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
                     <div className="flex items-center gap-2 text-xs font-semibold text-white/60 uppercase tracking-wider">
-                      <span>⚡</span> Standard Output (Raw User Prompt)
+                      <span>⚡</span> Raw Output
                     </div>
                     <button
                       onClick={() => handleCopy(response.raw_result || '', 'raw_result')}
@@ -321,7 +358,7 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-white/40 italic">
-                  Generated directly from raw user query without PromptMaster
+                  Generated directly from raw user query
                 </div>
               </div>
 
@@ -330,7 +367,7 @@ export default function Home() {
                 <div className="overflow-hidden">
                   <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3 gap-2">
                     <div className="flex items-center gap-2 text-xs font-semibold text-white uppercase tracking-wider">
-                      <span>🎯</span> Orchnex Enhanced Output
+                      <span>🎯</span> Enhanced Output
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
@@ -413,15 +450,70 @@ export default function Home() {
 
       {/* Full-Width Desktop Bottom Floating Bar */}
       <footer className="w-full max-w-4xl mx-auto sticky bottom-8 z-20 px-4">
+        {/* Hidden File Input for PDF Guidelines */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept=".pdf"
+          className="hidden"
+          onChange={(e) => {
+            if (e.target.files && e.target.files[0]) {
+              handleFileUpload(e.target.files[0]);
+            }
+          }}
+        />
+
+        {/* Attached Document Indicator Chip */}
+        {attachedDoc && (
+          <div className="mb-2 flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono w-fit backdrop-blur-xl animate-fadeIn">
+            <span>📄 Attached Guidelines: {attachedDoc.name} ({attachedDoc.text.length} chars)</span>
+            <button
+              type="button"
+              onClick={() => setAttachedDoc(null)}
+              className="ml-2 hover:text-white font-bold text-sm"
+              title="Remove document"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           <div className="relative flex items-center bg-zinc-900/80 backdrop-blur-3xl border border-white/20 rounded-[2rem] p-3 shadow-[0_8px_32px_rgba(0,0,0,0.8)] focus-within:border-white/40 transition-all duration-300">
+            {/* PDF Upload Button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading || isUploadingDoc}
+              className={`p-3 rounded-full transition-all duration-300 flex items-center justify-center ml-1 shrink-0 ${
+                attachedDoc
+                  ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/30'
+                  : 'text-white/60 hover:text-white hover:bg-white/10'
+              }`}
+              title="Attach Company Guidelines PDF"
+            >
+              {isUploadingDoc ? (
+                <span className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              )}
+            </button>
+
             <input
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
               disabled={loading}
-              placeholder={loading ? 'Processing response...' : 'Ask anything...'}
-              className="w-full bg-transparent px-6 py-3 text-lg text-white placeholder-white/40 focus:outline-none disabled:opacity-50 font-medium"
+              placeholder={loading ? 'Processing response...' : attachedDoc ? `Ask using ${attachedDoc.name}...` : 'Ask anything... (Press Enter or attach PDF)'}
+              className="w-full bg-transparent px-4 py-3 text-lg text-white placeholder-white/40 focus:outline-none disabled:opacity-50 font-medium"
             />
 
             {loading ? (
