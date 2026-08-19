@@ -24,15 +24,21 @@ class DocumentRetriever:
         self._file_cache: Dict[str, Tuple[List[DocumentChunk], torch.Tensor]] = {}
 
     def _initialize_model(self):
-        """Lazy load tokenizer and model to avoid overhead at startup"""
+        """Lazy load tokenizer and model, prioritizing local cache to prevent network timeouts"""
         if self._initialized:
             return
         try:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-            self.model = AutoModel.from_pretrained(self.model_name)
+            # Try loading from local cache first to avoid slow HuggingFace HEAD requests
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, local_files_only=True)
+            self.model = AutoModel.from_pretrained(self.model_name, local_files_only=True)
             self._initialized = True
-        except Exception as e:
-            raise RuntimeError(f"Failed to load embedding model '{self.model_name}': {str(e)}")
+        except Exception:
+            try:
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+                self.model = AutoModel.from_pretrained(self.model_name)
+                self._initialized = True
+            except Exception as e:
+                raise RuntimeError(f"Failed to load embedding model '{self.model_name}': {str(e)}")
 
     def _mean_pooling(self, model_output, attention_mask) -> torch.Tensor:
         """Mean Pooling - Take attention mask into account for correct averaging"""
