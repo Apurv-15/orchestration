@@ -108,11 +108,30 @@ async def upload_pdf(file: UploadFile = File(...)):
         )
 
         if req.is_rag:
-            orchestrator = RAGOrchestrator(config)
+            # Reuse cached orchestrator instance to avoid re-embedding entire PDF on every request
+            cache_key = req.model_name
+            if cache_key not in _rag_orchestrator_cache:
+                _rag_orchestrator_cache[cache_key] = RAGOrchestrator(config)
+            orchestrator = _rag_orchestrator_cache[cache_key]
+
             docs_dir = os.path.join(os.path.dirname(__file__), "data", "sample_docs")
+
+            # If document text passed directly, write it as a .txt file for indexing
+            if req.document_text and req.document_text.strip() and req.document_name:
+                os.makedirs(docs_dir, exist_ok=True)
+                txt_name = req.document_name.replace(".pdf", ".txt")
+                with open(os.path.join(docs_dir, txt_name), "w", encoding="utf-8") as f:
+                    f.write(req.document_text)
+                # Invalidate cache so new document is indexed freshly
+                if cache_key in _rag_orchestrator_cache:
+                    del _rag_orchestrator_cache[cache_key]
+                orchestrator = RAGOrchestrator(config)
+                _rag_orchestrator_cache[cache_key] = orchestrator
+
             if os.path.exists(docs_dir):
                 orchestrator.load_documents(docs_dir)
-            result = orchestrator.process_query(req.prompt)
+
+            result = orchestrator.process_query(full_user_prompt)
             return {
                 "status": "success",
                 "original_prompt": req.prompt,
@@ -124,10 +143,10 @@ async def upload_pdf(file: UploadFile = File(...)):
             }
         else:
             orchestrator = MultiLLMOrchestrator(config)
-            enhanced_prompt = orchestrator.enhance_prompt_with_promptmaster(req.prompt)
+            enhanced_prompt = orchestrator.enhance_prompt_with_promptmaster(full_user_prompt)
             
             # 1. Normal/Baseline generation from raw prompt (without PromptMaster enhancement)
-            raw_result = orchestrator.providers['gemini'].generate_response(req.prompt)
+            raw_result = orchestrator.providers['gemini'].generate_response(full_user_prompt)
             
             # 2. Enhanced generation from PromptMaster 4.0 specification
             phoenix_prompt = (
