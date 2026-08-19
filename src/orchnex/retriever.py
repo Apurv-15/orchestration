@@ -104,7 +104,8 @@ class DocumentRetriever:
         return chunks
 
     def load_documents(self, directory_path: str, chunk_size: int = 500, overlap: int = 100) -> int:
-        """Load, chunk, and embed all text/markdown files in a directory"""
+        """Load, chunk, and embed all text/markdown files in a directory.
+        Uses per-file SHA256 hash caching to skip re-embedding unchanged files."""
         if not os.path.isdir(directory_path):
             raise ValueError(f"Directory not found: {directory_path}")
 
@@ -114,38 +115,52 @@ class DocumentRetriever:
         for ext in extensions:
             files.extend(glob.glob(os.path.join(directory_path, '**', ext), recursive=True))
 
-        new_chunks = []
-        new_texts = []
+        all_chunks: List[DocumentChunk] = []
+        all_embeddings: List[torch.Tensor] = []
+        total_new_chunks = 0
 
         for filepath in files:
             try:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.read()
-                
+
+                # Compute SHA256 hash of file contents for cache key
+                file_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()
+
+                if file_hash in self._file_cache:
+                    # Cache hit: reuse previously computed embeddings
+                    cached_chunks, cached_emb = self._file_cache[file_hash]
+                    all_chunks.extend(cached_chunks)
+                    all_embeddings.append(cached_emb)
+                    continue
+
                 filename = os.path.basename(filepath)
                 text_chunks = self.chunk_text(content, chunk_size, overlap)
-                
-                for idx, chunk_text in enumerate(text_chunks):
-                    new_chunks.append(DocumentChunk(chunk_text, filename, idx))
-                    new_texts.append(chunk_text)
-                    
+
+                if not text_chunks:
+                    continue
+
+                chunk_objects = [DocumentChunk(t, filename, i) for i, t in enumerate(text_chunks)]
+                embeddings = self._get_embeddings(text_chunks)
+
+                # Store in cache
+                self._file_cache[file_hash] = (chunk_objects, embeddings)
+
+                all_chunks.extend(chunk_objects)
+                all_embeddings.append(embeddings)
+                total_new_chunks += len(chunk_objects)
+
             except Exception as e:
                 print(f"Warning: Failed to process file {filepath}: {str(e)}")
 
-        if not new_chunks:
+        if not all_chunks:
             return 0
 
-        # Compute embeddings for new texts
-        embeddings = self._get_embeddings(new_texts)
+        # Rebuild retriever state from all (cached + new) chunks
+        self.chunks = all_chunks
+        self.embeddings = torch.cat(all_embeddings, dim=0) if all_embeddings else None
 
-        # Update retriever state
-        self.chunks.extend(new_chunks)
-        if self.embeddings is None:
-            self.embeddings = embeddings
-        else:
-            self.embeddings = torch.cat([self.embeddings, embeddings], dim=0)
-
-        return len(new_chunks)
+        return total_new_chunks
 
     def retrieve(self, query: str, top_k: int = 3) -> List[Tuple[DocumentChunk, float]]:
         """Retrieve top_k most similar chunks for the given query"""
