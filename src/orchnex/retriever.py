@@ -48,29 +48,28 @@ class DocumentRetriever:
         sum_mask = torch.clamp(input_mask_expanded.sum(1), min=1e-9)
         return sum_embeddings / sum_mask
 
-    def _get_embeddings(self, texts: List[str]) -> torch.Tensor:
-        """Generate dense vector embeddings for a list of texts"""
+    def _get_embeddings(self, texts: List[str], batch_size: int = 32) -> torch.Tensor:
+        """Generate dense vector embeddings in mini-batches to avoid OOM on large PDFs"""
         self._initialize_model()
-        
-        # Tokenize sentences
-        encoded_input = self.tokenizer(
-            texts, 
-            padding=True, 
-            truncation=True, 
-            max_length=512, 
-            return_tensors='pt'
-        )
+        all_embeddings = []
 
-        # Compute token embeddings
-        with torch.no_grad():
-            model_output = self.model(**encoded_input)
+        for i in range(0, len(texts), batch_size):
+            batch = texts[i:i + batch_size]
+            encoded_input = self.tokenizer(
+                batch,
+                padding=True,
+                truncation=True,
+                max_length=512,
+                return_tensors='pt'
+            )
+            with torch.no_grad():
+                model_output = self.model(**encoded_input)
 
-        # Perform pooling
-        sentence_embeddings = self._mean_pooling(model_output, encoded_input['attention_mask'])
+            batch_embeddings = self._mean_pooling(model_output, encoded_input['attention_mask'])
+            batch_embeddings = torch.nn.functional.normalize(batch_embeddings, p=2, dim=1)
+            all_embeddings.append(batch_embeddings)
 
-        # Normalize embeddings
-        sentence_embeddings = torch.nn.functional.normalize(sentence_embeddings, p=2, dim=1)
-        return sentence_embeddings
+        return torch.cat(all_embeddings, dim=0)
 
     def chunk_text(self, text: str, chunk_size: int = 500, overlap: int = 100) -> List[str]:
         """Split text into overlapping chunks"""
