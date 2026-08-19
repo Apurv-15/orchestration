@@ -49,6 +49,38 @@ class OrchestrationRequest(BaseModel):
 def read_root():
     return {"status": "ok", "message": "Orchnex API Service is running"}
 
+@app.post("/api/upload-pdf")
+async def upload_pdf(file: UploadFile = File(...)):
+    """Endpoint to upload a PDF guidelines document, extract text via pypdf, and store in sample_docs."""
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+        
+    try:
+        contents = await file.read()
+        text = extract_text_from_pdf_bytes(contents)
+        
+        if not text:
+            raise HTTPException(status_code=400, detail="No readable text found in PDF. Make sure it is not an image-only scanned document.")
+
+        # Save to data/sample_docs for RAG indexing
+        docs_dir = os.path.join(os.path.dirname(__file__), "data", "sample_docs")
+        os.makedirs(docs_dir, exist_ok=True)
+        
+        save_path = os.path.join(docs_dir, file.filename)
+        with open(save_path, "wb") as f:
+            f.write(contents)
+            
+        return {
+            "status": "success",
+            "filename": file.filename,
+            "char_count": len(text),
+            "extracted_text": text
+        }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/generate")
 async def generate_response(req: OrchestrationRequest):
     if not req.prompt.strip():
