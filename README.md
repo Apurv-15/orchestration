@@ -101,11 +101,25 @@ Raw Query ──► [Intent & Slot Extraction] ──► [Semantic Ambiguity Res
     - `SUPPORTED`: Empirical match with document context.
     - `CONTRADICTED`: Conflicts with document context.
     - `NEUTRAL`: Unsubstantiated claim.
-- ⚡ **Side-by-Side Prompt Comparison UI**:
-  - Renders raw prompt output vs. PromptMaster 4.0 enhanced output side-by-side with 1-click **Copy Buttons** (`📋 Copy` ➔ `✓ Copied`).
 - 🛑 **Interactive Request Controls**:
   - Real-time percentage progress bar (0-100%) and instant request cancellation **Stop Button (⏹️)** backed by `AbortController`.
+  - Live execution stopwatch timer (`⏱️ 14.2s`) displaying elapsed query time in real-time.
+- 📄 **PDF Guidelines Upload & Extraction**:
+  - Upload PDF guideline documents directly via the UI.
+  - Automatically extracts text using `pypdf` and injects it as grounding rules for prompt generation.
 - 🦙 **Local Ollama & Offline Support**: Run both the standard Multi-LLM Orchestrator and the RAG Evaluator completely offline using models hosted on Ollama (`qwen3:1.7b` or `llama3`).
+
+---
+
+## ⚡ Performance & Pipeline Optimizations
+
+To handle large documents and PDFs efficiently on local hardware (Ollama), the following optimizations are implemented:
+
+* **Module-Level Orchestrator Caching**: Reuses the active `RAGOrchestrator` instance across requests instead of rebuilding and re-indexing the PDF on every API call.
+* **Mini-Batch Embedding (`batch_size=32`)**: Processes large text documents in controlled batch slices during tokenization to prevent RAM/CPU spikes or Out-Of-Memory (OOM) errors.
+* **SHA256 File Hash Caching**: Computes a unique hash of text files. If a file hasn't changed, its existing embeddings are instantly reused from cache, eliminating re-embedding overhead.
+* **Dynamic Context Window Truncation**: Automatically limits direct guidelines injection to 6,000 characters to protect local LLM token context windows, while RAG vector search retains retrieval capability across unlimited document pages.
+* **HuggingFace Offline Cache Priority**: Configures model loaders to prioritize offline cache (`local_files_only=True`) first, bypassing slow network checks to `huggingface.co` that cause requests to hang.
 
 ---
 
