@@ -86,7 +86,16 @@ async def upload_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate")
-async def generate_response(req: OrchestrationRequest):
+
+        # Include company guidelines document text if attached.
+        # Truncate to max 6000 chars to avoid flooding Ollama's context window.
+        full_user_prompt = req.prompt
+        if req.document_text and req.document_text.strip():
+            doc_text_truncated = req.document_text[:6000]
+            if len(req.document_text) > 6000:
+                doc_text_truncated += "\n...[Document truncated for context limit]"
+            doc_context = f"### ATTACHED COMPANY GUIDELINES / DOCUMENT CONTEXT ({req.document_name or 'Document'}):\n{doc_text_truncated}\n\n"
+            full_user_prompt = doc_context + "### USER REQUEST:\n" + req.prompt
     if not req.prompt.strip():
         raise HTTPException(status_code=400, detail="Prompt cannot be empty")
         
