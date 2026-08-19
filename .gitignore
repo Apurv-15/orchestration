@@ -1,6 +1,9 @@
 # Logs
 *.log
 *.env
+outputs/
+data/sample_docs/*.pdf
+data/sample_docs/*.txt
 
 # OS generated files
 .DS_Store
