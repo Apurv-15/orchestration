@@ -20,6 +20,8 @@ class DocumentRetriever:
         self.chunks: List[DocumentChunk] = []
         self.embeddings: Optional[torch.Tensor] = None
         self._initialized = False
+        # Cache: file_hash -> (chunks, embeddings tensor)
+        self._file_cache: Dict[str, Tuple[List[DocumentChunk], torch.Tensor]] = {}
 
     def _initialize_model(self):
         """Lazy load tokenizer and model to avoid overhead at startup"""
