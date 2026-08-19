@@ -90,6 +90,10 @@ export default function Home() {
     };
   }, [loading]);
 
+  const [attachedDoc, setAttachedDoc] = useState<{ name: string; text: string } | null>(null);
+  const [isUploadingDoc, setIsUploadingDoc] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleStop = () => {
