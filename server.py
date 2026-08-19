@@ -86,7 +86,11 @@ async def upload_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/generate")
-
+async def generate_response(req: OrchestrationRequest):
+    if not req.prompt.strip():
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+        
+    try:
         # Include company guidelines document text if attached.
         # Truncate to max 6000 chars to avoid flooding Ollama's context window.
         full_user_prompt = req.prompt
@@ -96,10 +100,6 @@ async def upload_pdf(file: UploadFile = File(...)):
                 doc_text_truncated += "\n...[Document truncated for context limit]"
             doc_context = f"### ATTACHED COMPANY GUIDELINES / DOCUMENT CONTEXT ({req.document_name or 'Document'}):\n{doc_text_truncated}\n\n"
             full_user_prompt = doc_context + "### USER REQUEST:\n" + req.prompt
-    if not req.prompt.strip():
-        raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-        
-    try:
         config = LLMConfig(
             use_ollama=req.use_ollama,
             ollama_base_url="http://localhost:11434/v1",
@@ -160,12 +160,46 @@ async def upload_pdf(file: UploadFile = File(...)):
                 "status": "success",
                 "original_prompt": req.prompt,
                 "enhanced_prompt": enhanced_prompt,
+                "enhanced_prompt_spec": parse_enhanced_prompt_to_json(enhanced_prompt),
                 "raw_result": raw_result,
                 "final_result": final_result
             }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def parse_enhanced_prompt_to_json(text: str) -> dict:
+    """
+    Parse the PromptMaster structured text spec into a clean JSON dict.
+    Extracts role, context, task, constraints, output_format, and deliverables fields.
+    """
+    import re
+    result = {}
+    fields = ["role", "context", "task", "constraints", "output_format", "deliverables"]
+    
+    for i, field_name in enumerate(fields):
+        # Build pattern to capture from field_name: up to the next field or end of string
+        next_fields = fields[i+1:] if i+1 < len(fields) else []
+        if next_fields:
+            lookahead = "|".join(re.escape(f + ":") for f in next_fields)
+            pattern = rf"{re.escape(field_name)}:\s*(.*?)(?={lookahead}|\Z)"
+        else:
+            pattern = rf"{re.escape(field_name)}:\s*(.*)"
+        
+        match = re.search(pattern, text, re.S | re.I)
+        if match:
+            content = match.group(1).strip()
+            # Convert bullet list fields into arrays for clean JSON
+            if field_name in ("constraints", "deliverables"):
+                lines = [l.strip().lstrip("-•*").strip() for l in content.splitlines() if l.strip().lstrip("-•*").strip()]
+                result[field_name] = lines if lines else [content]
+            else:
+                result[field_name] = content
+        else:
+            result[field_name] = ""
+    
+    return result
+
 
 if __name__ == "__main__":
     import uvicorn

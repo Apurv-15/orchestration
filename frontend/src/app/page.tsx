@@ -381,8 +381,79 @@ export default function Home() {
                       </span>
                     </div>
                   </div>
-                  <div className="text-white/95 text-[14px] leading-relaxed selection:bg-white/30 markdown-content overflow-x-auto max-h-[600px] overflow-y-auto pr-2 break-words">
-                    <ReactMarkdown>{response.final_result || response.final_answer}</ReactMarkdown>
+
+                  {/* PromptMaster Structured Spec Card */}
+                  {response.enhanced_prompt_spec && (
+                    <div className="mb-5 rounded-2xl border border-cyan-500/20 bg-cyan-950/10 p-4 space-y-3 font-mono text-[12px]">
+                      <div className="flex items-center gap-2 text-cyan-400 font-bold text-[11px] uppercase tracking-widest mb-1">
+                        <span>⚙️</span> PromptMaster 4.0 — Execution Spec
+                      </div>
+
+                      {response.enhanced_prompt_spec.role && (
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Role</span>
+                          <p className="text-cyan-100/80 leading-snug">{response.enhanced_prompt_spec.role}</p>
+                        </div>
+                      )}
+
+                      {response.enhanced_prompt_spec.context && (
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400/70">Context</span>
+                          <p className="text-white/70 leading-snug">{response.enhanced_prompt_spec.context}</p>
+                        </div>
+                      )}
+
+                      {response.enhanced_prompt_spec.task && (
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70">Task</span>
+                          <p className="text-white/80 leading-snug whitespace-pre-wrap">{response.enhanced_prompt_spec.task}</p>
+                        </div>
+                      )}
+
+                      {response.enhanced_prompt_spec.constraints && response.enhanced_prompt_spec.constraints.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">Constraints</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {response.enhanced_prompt_spec.constraints.map((c: string, i: number) => (
+                              <span key={i} className="px-2 py-0.5 rounded-full bg-red-950/50 border border-red-800/40 text-red-300/80 text-[10px]">
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {response.enhanced_prompt_spec.output_format && (
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70">Output Format</span>
+                          <p className="text-white/70 leading-snug whitespace-pre-wrap">{response.enhanced_prompt_spec.output_format}</p>
+                        </div>
+                      )}
+
+                      {response.enhanced_prompt_spec.deliverables && response.enhanced_prompt_spec.deliverables.length > 0 && (
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70">Deliverables</span>
+                          <ul className="space-y-0.5 list-none">
+                            {response.enhanced_prompt_spec.deliverables.map((d: string, i: number) => (
+                              <li key={i} className="flex items-start gap-1.5 text-white/70">
+                                <span className="text-emerald-400 mt-0.5">✓</span>
+                                <span>{d}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Phoenix Executed Output */}
+                  <div className="space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-widest text-white/30 font-bold flex items-center gap-1.5 mb-2">
+                      <span className="w-1 h-1 rounded-full bg-emerald-400 inline-block" /> Phoenix Executed Output
+                    </div>
+                    <div className="text-white/95 text-[14px] leading-relaxed selection:bg-white/30 markdown-content overflow-x-auto max-h-[400px] overflow-y-auto pr-2 break-words">
+                      <ReactMarkdown>{response.final_result || response.final_answer}</ReactMarkdown>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-emerald-400/70 font-medium flex items-center gap-1">
