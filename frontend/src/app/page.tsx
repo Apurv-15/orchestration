@@ -142,6 +142,8 @@ export default function Home() {
           use_ollama: true,
           model_name: modelName,
           is_rag: isRag,
+          document_text: attachedDoc?.text,
+          document_name: attachedDoc?.name,
         }),
       });
 
