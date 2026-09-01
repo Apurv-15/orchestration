@@ -125,7 +125,8 @@ export default function Home() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('http://localhost:8000/api/upload-pdf', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL !== undefined ? process.env.NEXT_PUBLIC_API_URL : 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/api/upload-pdf`, {
         method: 'POST',
         body: formData,
       });
@@ -170,7 +171,8 @@ export default function Home() {
     abortControllerRef.current = controller;
 
     try {
-      const res = await fetch('http://localhost:8000/api/generate', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL !== undefined ? process.env.NEXT_PUBLIC_API_URL : 'http://localhost:8000';
+      const res = await fetch(`${apiBase}/api/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

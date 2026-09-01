@@ -1,3 +1,13 @@
+---
+title: Orchnex Orchestrator
+emoji: ⚡
+colorFrom: indigo
+colorTo: purple
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Orchnex: Gemini-Llama Dual-LLM Orchestration & Grounded Intelligence Engine
 
 <p align="center">
