@@ -1,60 +1,72 @@
-# Logs
-*.log
+# Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+pencil-sketch-loader/node_modules/
+pencil-sketch-loader/dist/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment Variables & Secrets
+.env
 *.env
-outputs/
-data/sample_docs/*.pdf
-data/sample_docs/*.txt
+.env.*
+!.env.example
 
 # OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
+# Project generated outputs & runtime artifacts
+outputs/
+data/sample_docs/*.pdf
+data/sample_docs/*.txt
+scratch/
+*.log
 
-
-# Node.js
-
-__pycache__/
+# Node & Frontend dependencies & builds
 node_modules/
-npm-debug.log
-yarn-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/node_modules/
 
-# Markdown
-*.CODE_OF_CONDUCT.md
+# Python distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Java
-*.class
-*.jar
-*.war
-*.ear
-*.iml
-
-# Ruby
-*.gem
-*.rbc
-.ruby-version
-.ruby-gemset
-
-# Go
-*.exe
-*.out
-*.test
-
-# Rust
-target/
-
-# C/C++
-*.obj
-*.o
-*.a
-*.lib
-*.so
-*.dll
-*.dylib
-*.exe
-*.out
-
-# Archives
-*.zip
-*.tar.gz
-*.rar
-*.7z
+# Testing & Type checking
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
