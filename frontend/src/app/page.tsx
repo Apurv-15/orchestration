@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import ReactMarkdown from 'react-markdown';
+import { PlotReveal } from '@/components/plot-reveal';
+import { StarkEngineHUD } from './components/StarkEngineHUD';
 
 // Dynamically import WebGL Plasma component to ensure it renders purely client-side
 const Plasma = dynamic(() => import('./components/Plasma'), { ssr: false });
@@ -29,6 +31,8 @@ export default function Home() {
   const stepIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [sketchRunKey, setSketchRunKey] = useState(1);
+  const [demoSketching, setDemoSketching] = useState(false);
 
   const handleCopy = (text: string, key: string) => {
     if (!text) return;
@@ -164,6 +168,7 @@ export default function Home() {
     setSubmittedQuery(query);
     setPrompt('');
     setLoading(true);
+    setSketchRunKey((prev) => prev + 1);
     setError(null);
     setResponse(null);
 
@@ -242,6 +247,19 @@ export default function Home() {
             />
             <span>RAG Mode</span>
           </label>
+
+          {/* Blueprint Animation Preview Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setDemoSketching((prev) => !prev);
+              setSketchRunKey((k) => k + 1);
+            }}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-medium transition active:scale-95 shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+          >
+            <span>📐</span>
+            <span>{demoSketching ? 'Stop Preview' : 'Preview Blueprint'}</span>
+          </button>
         </div>
       </header>
 
@@ -336,133 +354,220 @@ export default function Home() {
           </div>
         )}
 
-        {/* Output Presentation Container */}
+        {/* Blueprint Sketch State during Loading or Preview */}
+        {(loading || demoSketching) && (
+          <div className="w-full max-w-7xl mt-12 z-10 pointer-events-auto px-4 animate-fadeIn">
+            {/* Holographic Stark Engine HUD File Node Bus */}
+            <StarkEngineHUD
+              currentPhase={currentStepIndex}
+              elapsedSeconds={elapsedSeconds}
+              documentName={attachedDoc?.name}
+              modelName={modelName}
+            />
+
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                <span className="font-mono text-xs uppercase tracking-widest text-cyan-400">
+                  {demoSketching ? '📐 Blueprint Preview Mode (Click Replay to redraw)' : '⚡ Real-time Blueprint Synthesis Drafting'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSketchRunKey((k) => k + 1)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-medium transition active:scale-95 shadow-md"
+              >
+                <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                  <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                <span>Replay Sketch</span>
+              </button>
+            </div>
+
+            <PlotReveal key={`sketch-${sketchRunKey}`} annotate={true} morph={true} ready={false} className="w-full">
+              <div data-plot-frame className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start rounded-3xl border border-cyan-500/30 bg-cyan-950/20 p-6 backdrop-blur-xl shadow-[0_0_50px_rgba(6,182,212,0.15)]">
+                {/* Blueprint Card 1: Raw Output Schematic */}
+                <div data-plot="raw-schematic" className="flex flex-col gap-4 p-6 rounded-2xl border border-cyan-500/20 bg-black/40">
+                  <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3">
+                    <span data-plot="header" className="font-mono text-xs uppercase tracking-widest text-cyan-400">
+                      ⚡ RAW BASELINE SCHEMATIC
+                    </span>
+                    <span data-plot="status" className="font-mono text-[11px] text-cyan-300/80">
+                      SYNTHESIZING...
+                    </span>
+                  </div>
+                  <div className="space-y-3 py-4">
+                    <div data-plot="line-1" className="h-3 w-3/4 rounded bg-cyan-500/30 hatch" />
+                    <div data-plot="line-2" className="h-3 w-full rounded bg-cyan-500/20" />
+                    <div data-plot="line-3" className="h-3 w-5/6 rounded bg-cyan-500/20" />
+                    <div data-plot="line-4" className="h-3 w-2/3 rounded bg-cyan-500/30 hatch" />
+                  </div>
+                  <div data-plot="telemetry" className="mt-4 pt-3 border-t border-cyan-500/10 font-mono text-[11px] text-cyan-400/60 flex justify-between">
+                    <span>SPEC: BASELINE</span>
+                    <span>TICK: {elapsedSeconds > 0 ? `${elapsedSeconds.toFixed(1)}s` : '0.0s'}</span>
+                  </div>
+                </div>
+
+                {/* Blueprint Card 2: Enhanced Orchestrated Schematic */}
+                <div data-plot="enhanced-schematic" className="flex flex-col gap-4 p-6 rounded-2xl border border-emerald-500/30 bg-black/40">
+                  <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+                    <span data-plot="header" className="font-mono text-xs uppercase tracking-widest text-emerald-400">
+                      🎯 ORCHESTRATED MULTI-AGENT SPEC
+                    </span>
+                    <span data-plot="badge" className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                      10X SYNTHESIS
+                    </span>
+                  </div>
+                  <div className="space-y-3 py-4">
+                    <div data-plot="meta" className="flex gap-2">
+                      <span data-plot="tag-1" className="h-5 w-20 rounded bg-cyan-500/30 hatch" />
+                      <span data-plot="tag-2" className="h-5 w-24 rounded bg-emerald-500/30" />
+                    </div>
+                    <div data-plot="line-1" className="h-3.5 w-full rounded bg-emerald-500/30 hatch" />
+                    <div data-plot="line-2" className="h-3.5 w-11/12 rounded bg-emerald-500/20" />
+                    <div data-plot="line-3" className="h-3.5 w-4/5 rounded bg-emerald-500/20" />
+                  </div>
+                  <div data-plot="telemetry" className="mt-4 pt-3 border-t border-emerald-500/10 font-mono text-[11px] text-emerald-400/60 flex justify-between">
+                    <span>ORCHNEX ENGINE: ACTIVE</span>
+                    <span>PHASE: {currentStepIndex + 1}/5</span>
+                  </div>
+                </div>
+              </div>
+            </PlotReveal>
+          </div>
+        )}
+
+        {/* Output Presentation Container with Blueprint Dynamic Reveal */}
         {response && (
           <div className="w-full max-w-7xl mt-12 space-y-6 animate-fadeIn transition-all z-10 pointer-events-auto px-4">
-            {/* Side-by-Side Output Comparison */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start">
-              {/* Baseline / Normal Prompt Result */}
-              <div className="bg-zinc-950/90 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col justify-between overflow-hidden min-w-0">
-                <div className="overflow-hidden">
-                  <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-white/60 uppercase tracking-wider">
-                      <span>⚡</span> Raw Output
-                    </div>
-                    <button
-                      onClick={() => handleCopy(response.raw_result || '', 'raw_result')}
-                      className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full bg-white/10 hover:bg-white/20 text-white/70 transition shrink-0"
-                    >
-                      {copiedKey === 'raw_result' ? '✓ Copied' : '📋 Copy'}
-                    </button>
-                  </div>
-                  <div className="text-white/85 text-[14px] leading-relaxed selection:bg-white/20 markdown-content overflow-x-auto max-h-[600px] overflow-y-auto pr-2 break-words">
-                    <ReactMarkdown>{response.raw_result || 'Standard response unavailable'}</ReactMarkdown>
-                  </div>
-                </div>
-                <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-white/40 italic">
-                  Generated directly from raw user query
-                </div>
-              </div>
-
-              {/* Enhanced Prompt Result */}
-              <div className="bg-zinc-950 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl flex flex-col justify-between overflow-hidden min-w-0">
-                <div className="overflow-hidden">
-                  <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3 gap-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-white uppercase tracking-wider">
-                      <span>🎯</span> Enhanced Output
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleCopy(response.final_result || response.final_answer || '', 'final_result')}
-                        className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full bg-white/10 hover:bg-white/20 text-white transition"
-                      >
-                        {copiedKey === 'final_result' ? '✓ Copied' : '📋 Copy'}
-                      </button>
-                      <span className="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        10x Quality
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* PromptMaster Structured Spec Card */}
-                  {response.enhanced_prompt_spec && (
-                    <div className="mb-5 rounded-2xl border border-cyan-500/20 bg-cyan-950/10 p-4 space-y-3 font-mono text-[12px]">
-                      <div className="flex items-center gap-2 text-cyan-400 font-bold text-[11px] uppercase tracking-widest mb-1">
-                        <span>⚙️</span> PromptMaster 4.0 — Execution Spec
+            <PlotReveal key={`reveal-${sketchRunKey}`} annotate={false} morph={false} ready={true} className="w-full">
+              {/* Side-by-Side Output Comparison */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full items-start">
+                {/* Baseline / Normal Prompt Result */}
+                <div data-plot-frame className="bg-zinc-950/90 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col justify-between overflow-hidden min-w-0">
+                  <div className="overflow-hidden">
+                    <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+                      <div data-plot="raw-title" className="flex items-center gap-2 text-xs font-semibold text-white/60 uppercase tracking-wider">
+                        <span>⚡</span> Raw Output
                       </div>
-
-                      {response.enhanced_prompt_spec.role && (
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Role</span>
-                          <p className="text-cyan-100/80 leading-snug">{response.enhanced_prompt_spec.role}</p>
-                        </div>
-                      )}
-
-                      {response.enhanced_prompt_spec.context && (
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-violet-400/70">Context</span>
-                          <p className="text-white/70 leading-snug">{response.enhanced_prompt_spec.context}</p>
-                        </div>
-                      )}
-
-                      {response.enhanced_prompt_spec.task && (
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70">Task</span>
-                          <p className="text-white/80 leading-snug whitespace-pre-wrap">{response.enhanced_prompt_spec.task}</p>
-                        </div>
-                      )}
-
-                      {response.enhanced_prompt_spec.constraints && response.enhanced_prompt_spec.constraints.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">Constraints</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {response.enhanced_prompt_spec.constraints.map((c: string, i: number) => (
-                              <span key={i} className="px-2 py-0.5 rounded-full bg-red-950/50 border border-red-800/40 text-red-300/80 text-[10px]">
-                                {c}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {response.enhanced_prompt_spec.output_format && (
-                        <div className="space-y-0.5">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70">Output Format</span>
-                          <p className="text-white/70 leading-snug whitespace-pre-wrap">{response.enhanced_prompt_spec.output_format}</p>
-                        </div>
-                      )}
-
-                      {response.enhanced_prompt_spec.deliverables && response.enhanced_prompt_spec.deliverables.length > 0 && (
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70">Deliverables</span>
-                          <ul className="space-y-0.5 list-none">
-                            {response.enhanced_prompt_spec.deliverables.map((d: string, i: number) => (
-                              <li key={i} className="flex items-start gap-1.5 text-white/70">
-                                <span className="text-emerald-400 mt-0.5">✓</span>
-                                <span>{d}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      <button
+                        onClick={() => handleCopy(response.raw_result || '', 'raw_result')}
+                        className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full bg-white/10 hover:bg-white/20 text-white/70 transition shrink-0"
+                      >
+                        {copiedKey === 'raw_result' ? '✓ Copied' : '📋 Copy'}
+                      </button>
                     </div>
-                  )}
-
-                  {/* Phoenix Executed Output */}
-                  <div className="space-y-1.5">
-                    <div className="text-[10px] uppercase tracking-widest text-white/30 font-bold flex items-center gap-1.5 mb-2">
-                      <span className="w-1 h-1 rounded-full bg-emerald-400 inline-block" /> Phoenix Executed Output
-                    </div>
-                    <div className="text-white/95 text-[14px] leading-relaxed selection:bg-white/30 markdown-content overflow-x-auto max-h-[400px] overflow-y-auto pr-2 break-words">
-                      <ReactMarkdown>{response.final_result || response.final_answer}</ReactMarkdown>
+                    <div data-plot="raw-content" className="text-white/85 text-[14px] leading-relaxed selection:bg-white/20 markdown-content overflow-x-auto max-h-[600px] overflow-y-auto pr-2 break-words">
+                      <ReactMarkdown>{response.raw_result || 'Standard response unavailable'}</ReactMarkdown>
                     </div>
                   </div>
+                  <div data-plot="raw-footer" className="mt-4 pt-3 border-t border-white/5 text-[11px] text-white/40 italic">
+                    Generated directly from raw user query
+                  </div>
                 </div>
-                <div className="mt-4 pt-3 border-t border-white/5 text-[11px] text-emerald-400/70 font-medium flex items-center gap-1">
-                  <span>✨</span> Powered by PromptMaster 4.0 Spec Optimization
+
+                {/* Enhanced Prompt Result */}
+                <div data-plot-frame className="bg-zinc-950 backdrop-blur-2xl border border-white/20 rounded-3xl p-6 shadow-2xl flex flex-col justify-between overflow-hidden min-w-0">
+                  <div className="overflow-hidden">
+                    <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3 gap-2">
+                      <div data-plot="enhanced-title" className="flex items-center gap-2 text-xs font-semibold text-white uppercase tracking-wider">
+                        <span>🎯</span> Enhanced Output
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleCopy(response.final_result || response.final_answer || '', 'final_result')}
+                          className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full bg-white/10 hover:bg-white/20 text-white transition"
+                        >
+                          {copiedKey === 'final_result' ? '✓ Copied' : '📋 Copy'}
+                        </button>
+                        <span data-plot="badge" className="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          10x Quality
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* PromptMaster Structured Spec Card */}
+                    {response.enhanced_prompt_spec && (
+                      <div data-plot="spec-box" className="mb-5 rounded-2xl border border-cyan-500/20 bg-cyan-950/10 p-4 space-y-3 font-mono text-[12px]">
+                        <div data-plot="spec-header" className="flex items-center gap-2 text-cyan-400 font-bold text-[11px] uppercase tracking-widest mb-1">
+                          <span>⚙️</span> PromptMaster 4.0 — Execution Spec
+                        </div>
+
+                        {response.enhanced_prompt_spec.role && (
+                          <div className="space-y-0.5">
+                            <span data-plot="role-label" className="text-[10px] font-bold uppercase tracking-widest text-cyan-500/70">Role</span>
+                            <p data-plot="role-text" className="text-cyan-100/80 leading-snug">{response.enhanced_prompt_spec.role}</p>
+                          </div>
+                        )}
+
+                        {response.enhanced_prompt_spec.context && (
+                          <div className="space-y-0.5">
+                            <span data-plot="context-label" className="text-[10px] font-bold uppercase tracking-widest text-violet-400/70">Context</span>
+                            <p data-plot="context-text" className="text-white/70 leading-snug">{response.enhanced_prompt_spec.context}</p>
+                          </div>
+                        )}
+
+                        {response.enhanced_prompt_spec.task && (
+                          <div className="space-y-0.5">
+                            <span data-plot="task-label" className="text-[10px] font-bold uppercase tracking-widest text-amber-400/70">Task</span>
+                            <p data-plot="task-text" className="text-white/80 leading-snug whitespace-pre-wrap">{response.enhanced_prompt_spec.task}</p>
+                          </div>
+                        )}
+
+                        {response.enhanced_prompt_spec.constraints && response.enhanced_prompt_spec.constraints.length > 0 && (
+                          <div data-plot="constraints-box" className="space-y-1">
+                            <span data-plot="constraints-label" className="text-[10px] font-bold uppercase tracking-widest text-red-400/70">Constraints</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {response.enhanced_prompt_spec.constraints.map((c: string, i: number) => (
+                                <span key={i} data-plot={`c-${i}`} className="px-2 py-0.5 rounded-full bg-red-950/50 border border-red-800/40 text-red-300/80 text-[10px]">
+                                  {c}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {response.enhanced_prompt_spec.output_format && (
+                          <div className="space-y-0.5">
+                            <span data-plot="format-label" className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70">Output Format</span>
+                            <p data-plot="format-text" className="text-white/70 leading-snug whitespace-pre-wrap">{response.enhanced_prompt_spec.output_format}</p>
+                          </div>
+                        )}
+
+                        {response.enhanced_prompt_spec.deliverables && response.enhanced_prompt_spec.deliverables.length > 0 && (
+                          <div data-plot="deliverables-box" className="space-y-1">
+                            <span data-plot="deliverables-label" className="text-[10px] font-bold uppercase tracking-widest text-emerald-400/70">Deliverables</span>
+                            <ul className="space-y-0.5 list-none">
+                              {response.enhanced_prompt_spec.deliverables.map((d: string, i: number) => (
+                                <li key={i} data-plot={`d-${i}`} className="flex items-start gap-1.5 text-white/70">
+                                  <span className="text-emerald-400 mt-0.5">✓</span>
+                                  <span>{d}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Phoenix Executed Output */}
+                    <div className="space-y-1.5">
+                      <div data-plot="phoenix-label" className="text-[10px] uppercase tracking-widest text-white/30 font-bold flex items-center gap-1.5 mb-2">
+                        <span className="w-1 h-1 rounded-full bg-emerald-400 inline-block" /> Phoenix Executed Output
+                      </div>
+                      <div data-plot="phoenix-content" className="text-white/95 text-[14px] leading-relaxed selection:bg-white/30 markdown-content overflow-x-auto max-h-[400px] overflow-y-auto pr-2 break-words">
+                        <ReactMarkdown>{response.final_result || response.final_answer}</ReactMarkdown>
+                      </div>
+                    </div>
+                  </div>
+                  <div data-plot="phoenix-footer" className="mt-4 pt-3 border-t border-white/5 text-[11px] text-emerald-400/60 flex items-center justify-between font-mono">
+                    <span>STATUS: VALIDATED & ENHANCED</span>
+                    <span className="text-white/40">10X PIPELINE COMPLETED</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </PlotReveal>
 
             {/* Hallucination Detector (Per-Claim NLI) Breakdown */}
             {response.hallucination_check && (
