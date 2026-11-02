@@ -30,7 +30,11 @@ trap cleanup SIGINT SIGTERM EXIT
 
 # Step 1: Start Backend API Server
 echo "🐍 Starting Python FastAPI Backend Server..."
-python3 server.py &
+if [ -f ".venv/bin/python3" ]; then
+    .venv/bin/python3 server.py &
+else
+    python3 server.py &
+fi
 BACKEND_PID=$!
 
 # Wait for backend to boot up
