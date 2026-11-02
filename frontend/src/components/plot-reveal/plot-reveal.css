@@ -1,0 +1,44 @@
+/*
+  PlotReveal: the UI is hidden while it is measured; from then on the layer hides and reveals
+  its elements one by one (see the hi-fi stage in plot-layer.tsx). Nothing moves or blurs.
+*/
+.plot-root[data-plot-state="measuring"] > .plot-content {
+  opacity: 0;
+}
+
+.plot-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.plot-words {
+  position: absolute;
+  white-space: nowrap;
+}
+.plot-words,
+.plot-words * {
+  color: transparent !important;
+  -webkit-text-stroke: 0.6px color-mix(in srgb, var(--plot) 85%, transparent);
+  background: none !important;
+  border-color: color-mix(in srgb, var(--plot) 55%, transparent) !important;
+  box-shadow: none !important;
+}
+
+/* Drawn, but the data isn't here yet: the lettering breathes. */
+.plot-root[data-plot-state="waiting"] .plot-words {
+  animation: plot-breathe 1100ms ease-in-out infinite alternate;
+}
+@keyframes plot-breathe {
+  to {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plot-layer {
+    display: none;
+  }
+  .plot-root > .plot-content {
+    opacity: 1 !important;
+  }
+}
