@@ -26,7 +26,7 @@ class OllamaProvider(LLMProvider):
             self.client = OpenAI(
                 base_url=base_url,
                 api_key=api_key or "ollama",
-                timeout=12.0
+                timeout=120.0
             )
             self.model_name = kwargs.get('model_name', self.model_name)
             self.system_instruction = kwargs.get('system_instruction', '')
