@@ -1,0 +1,62 @@
+@import "tailwindcss";
+@import "./components/plot-reveal/plot-reveal.css";
+
+:root {
+  --paper: #fafaf8;
+  --card: #ffffff;
+  --ink: #0a0c10;
+  --mid: #565b64;
+  --muted: #8b909a;
+  --line: #e7e9ef;
+  /* The pencil colour. */
+  --plot: #2e6fff;
+  --positive: #16834a;
+  --positive-soft: #e6f5ec;
+  --well: #f3f4f6;
+  --previous: #cbd5e1;
+  /* Every chart stays on one hue: a blue ramp, light to deep. */
+  --blue-1: #dbe5ff;
+  --blue-2: #b2c7ff;
+  --blue-3: #7c9fff;
+  --blue-4: #3d6ef5;
+  --blue-5: #1d47c8;
+  color-scheme: light;
+}
+
+/* Diagonal stripes over a fill, for the funnel bars and stacked-bar segments. */
+.hatch {
+  background-image: repeating-linear-gradient(135deg, rgb(255 255 255 / 0.32) 0 1.5px, transparent 1.5px 6px);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-mid: var(--mid);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-plot: var(--plot);
+  --color-positive: var(--positive);
+  --color-positive-soft: var(--positive-soft);
+  --color-well: var(--well);
+  --color-previous: var(--previous);
+  --color-blue-1: var(--blue-1);
+  --color-blue-2: var(--blue-2);
+  --color-blue-3: var(--blue-3);
+  --color-blue-4: var(--blue-4);
+  --color-blue-5: var(--blue-5);
+
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+}
