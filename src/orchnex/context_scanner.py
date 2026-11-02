@@ -2,6 +2,8 @@
 import os
 import json
 
+_SCAN_CACHE = {}
+
 class ProjectContextScanner:
     """Scans the current workspace to extract framework, dependencies, and project structure context."""
     
@@ -9,6 +11,9 @@ class ProjectContextScanner:
         self.root_dir = root_dir or os.getcwd()
 
     def scan(self) -> str:
+        if self.root_dir in _SCAN_CACHE:
+            return _SCAN_CACHE[self.root_dir]
+
         context_parts = []
         
         # 1. Scan package.json for frontend/node dependencies
@@ -53,6 +58,9 @@ class ProjectContextScanner:
             pass
 
         if not context_parts:
-            return "Generic Standalone Environment"
+            result = "Generic Standalone Environment"
+        else:
+            result = "\n".join(context_parts)
 
-        return "\n".join(context_parts)
+        _SCAN_CACHE[self.root_dir] = result
+        return result
