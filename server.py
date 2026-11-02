@@ -142,11 +142,20 @@ async def generate_response(req: OrchestrationRequest):
                 "evaluation_history": result.get("evaluation_history", [])
             }
         else:
+            import asyncio
             orchestrator = MultiLLMOrchestrator(config)
-            enhanced_prompt = orchestrator.enhance_prompt_with_promptmaster(full_user_prompt)
-            
-            # 1. Normal/Baseline generation from raw prompt (without PromptMaster enhancement)
-            raw_result = orchestrator.providers['gemini'].generate_response(full_user_prompt)
+
+            # Optimization: Run PromptMaster enhancement and Raw baseline generation concurrently
+            # Raw generation does not depend on enhanced_prompt, saving 10-15s per query.
+            loop = asyncio.get_running_loop()
+            pm_task = loop.run_in_executor(
+                None, orchestrator.enhance_prompt_with_promptmaster, full_user_prompt
+            )
+            raw_task = loop.run_in_executor(
+                None, orchestrator.providers['gemini'].generate_response, full_user_prompt
+            )
+
+            enhanced_prompt, raw_result = await asyncio.gather(pm_task, raw_task)
             
             # 2. Enhanced generation from PromptMaster 4.0 specification
             phoenix_prompt = (
@@ -154,7 +163,9 @@ async def generate_response(req: OrchestrationRequest):
                 "Follow all role, context, task instructions, and constraints explicitly:\n\n"
                 f"{enhanced_prompt}"
             )
-            final_result = orchestrator.providers['gemini'].generate_response(phoenix_prompt)
+            final_result = await loop.run_in_executor(
+                None, orchestrator.providers['gemini'].generate_response, phoenix_prompt
+            )
             
             return {
                 "status": "success",
