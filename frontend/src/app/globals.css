@@ -105,3 +105,17 @@ body {
   border-color: rgba(255, 255, 255, 0.1);
   margin: 1rem 0;
 }
+
+/* Blueprint / Plot-Reveal Styling */
+@import "../components/plot-reveal/plot-reveal.css";
+
+:root {
+  --plot: #06b6d4; /* Neon cyan for blueprint sketching */
+  --line: rgba(6, 182, 212, 0.25);
+  --paper: #090d16;
+  --card: rgba(15, 23, 42, 0.75);
+}
+
+.hatch {
+  background-image: repeating-linear-gradient(135deg, rgb(6 182 212 / 0.25) 0 1.5px, transparent 1.5px 6px);
+}
